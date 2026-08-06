@@ -1,4 +1,4 @@
-# 5AM Run Club with Dennis
+# 5AM Run Club with Denys
 ### Build Specification & Claude Code Prompt
 
 **Status:** Draft v1 — ready for scope review before build
@@ -28,7 +28,7 @@ If down the line you want a *true* wake-you-up alarm, that requires wrapping thi
 
 **One habit. One app. No feature creep.**
 
-5AM Run Club with Dennis is a single-purpose accountability tool for one habit: being out the door running by 5:00 AM. Everything in the app either (a) reminds you, (b) makes you prove you did it, (c) shows you your streak, or (d) makes missing it cost something. Nothing else.
+5AM Run Club with Denys is a single-purpose accountability tool for one habit: being out the door running by 5:00 AM. Everything in the app either (a) reminds you, (b) makes you prove you did it, (c) shows you your streak, or (d) makes missing it cost something. Nothing else.
 
 **Tone:** Not a wellness app. Not cute. A demanding coach who already assumes you're capable of this and treats a missed day as a broken promise, not a "that's okay, tomorrow's a new day!" moment. Design and copy should feel like a military-adjacent training log crossed with a premium product — dark, disciplined, respectful of the user's intelligence.
 
@@ -213,7 +213,7 @@ README should include: what the app does in two sentences, the §0 platform-limi
 
 Everything above is context. Below is the actual instruction to hand off. A clean, standalone copy of this same prompt also lives in `docs/claude-code-build-prompt.md` for easy pasting.
 
-> Build a PWA called **"5AM Run Club with Dennis"** — a single-habit accountability tracker for a 5:00 AM daily run, per the attached spec (`docs/5am-run-club-spec.md`) and research brief (`docs/5am-run-club-research.md`). Read both files first.
+> Build a PWA called **"5AM Run Club with Denys"** — a single-habit accountability tracker for a 5:00 AM daily run, per the attached spec (`docs/5am-run-club-spec.md`) and research brief (`docs/5am-run-club-research.md`). Read both files first.
 >
 > Stack: React + Vite + TypeScript + Tailwind CSS + Dexie.js (IndexedDB) + vite-plugin-pwa, deployed to Vercel. New standalone repo — do not reference or depend on any other project.
 >
@@ -230,7 +230,7 @@ Everything above is context. Below is the actual instruction to hand off. A clea
 > 8. Build the Calendar/History view (§3.4) — GitHub-contributions-style heat grid, immutable past entries.
 > 9. Build Stats (§3.5, with Automaticity Progress replacing any "cost of miss" concept) and Settings (§3.7, including night-message time and if-then-plan history).
 > 10. Wire up the service worker for push notifications (§3.6) for both the night and morning slots, and add an explicit onboarding screen step on iOS explaining the install-to-home-screen requirement (§0).
-> 11. **Icon/branding:** generate the sunrise + running-figure + den-silhouette mark described in §9.4 (sun rising behind a low den/cave, runner emerging toward the light, subtle "00" integrated into the sun disc or horizon, tabular-font "5AM RUN CLUB / WITH DENNIS" wordmark) — use the Adobe Express / Adobe for Creativity tools if available to produce two concept directions for me to pick between; otherwise build clean placeholder icons in the §5 palette and flag that final icon art is pending.
+> 11. **Icon/branding:** generate the sunrise + running-figure + den-silhouette mark described in §9.4 (sun rising behind a low den/cave, runner emerging toward the light, subtle "00" integrated into the sun disc or horizon, tabular-font "5AM RUN CLUB / WITH DENYS" wordmark) — use the Adobe Express / Adobe for Creativity tools if available to produce two concept directions for me to pick between; otherwise build clean placeholder icons in the §5 palette and flag that final icon art is pending.
 > 12. Apply the design direction from §5 throughout — dark, disciplined, sunrise-accent, no gamified cheerfulness, tabular/scoreboard-style streak number as the dominant visual element.
 > 13. Deploy to a new Vercel project and confirm the live URL works on both mobile Chrome (Android) and installed-to-home-screen Safari (iOS).
 >
@@ -243,7 +243,7 @@ Everything above is context. Below is the actual instruction to hand off. A clea
 1. **Verification method default:** Photo. GPS removed from Phase 1 scope entirely — cut it, don't build even a fallback stub. Honor remains available as a manual override in Settings.
 2. **Check-in window:** 75 minutes (4:45–6:00 AM default), configurable in Settings. Confirmed as-is.
 3. **"Cost of a miss" stat — design decision (made per research in `docs/5am-run-club-research.md`):** replaced with **Automaticity Progress** — a progress bar toward Day 66, the median time-to-automaticity from Lally et al. (2010). Rationale: an arbitrary dollar/day "cost" framing is punitive and not evidence-backed; "you're 23/66 days toward this becoming automatic" is accurate, motivating, and on-brand for a research-driven app. Streak resets restart the bar, but the app explicitly does NOT reset a "total lifetime runs" counter — that number only ever goes up, so a bad week doesn't erase the whole record.
-4. **Icon/branding:** Sunrise + running-figure mark, with a subtle **"Dragon's Den" motif** — a low, dark den/cave silhouette in the foreground with the sun rising behind it and a running figure emerging from the mouth of the den toward the light. Small, understated **"00"** numeral integrated into the sun disc or horizon line as a birth-year nod (2000) — must read as a design detail, not a scoreboard. Wordmark: "5AM RUN CLUB" in the tabular/scoreboard font from §5, "WITH DENNIS" as a smaller subordinate line. Two icon concepts to be generated in-build via Adobe Express (Adobe MCP tools are available — use `search_design` / image generation flow), then Den picks one.
+4. **Icon/branding:** Sunrise + running-figure mark, with a subtle **"Dragon's Den" motif** — a low, dark den/cave silhouette in the foreground with the sun rising behind it and a running figure emerging from the mouth of the den toward the light. Small, understated **"00"** numeral integrated into the sun disc or horizon line as a birth-year nod (2000) — must read as a design detail, not a scoreboard. Wordmark: "5AM RUN CLUB" in the tabular/scoreboard font from §5, "WITH DENYS" as a smaller subordinate line. Two icon concepts to be generated in-build via Adobe Express (Adobe MCP tools are available — use `search_design` / image generation flow), then Den picks one.
 
 ---
 

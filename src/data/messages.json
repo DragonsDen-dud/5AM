@@ -1,0 +1,162 @@
+[
+  {
+    "id": "n-plan-01",
+    "slot": "night",
+    "stage": 1,
+    "category": "plan",
+    "text": "Write the plan before you sleep. If-then plans are the single largest lever in this app — people who write one act on their intention far more often than people who merely hold it. Name the trigger, the place, and the first movement.",
+    "source": "Gollwitzer & Sheeran, implementation intentions meta-analysis (d = 0.65)"
+  },
+  {
+    "id": "n-plan-02",
+    "slot": "night",
+    "stage": "any",
+    "category": "plan",
+    "text": "Vague intentions lose to specific ones. Not \"run in the morning.\" Try: \"When the alarm sounds at 4:45, I put both feet on the floor and my shoes are already by the door.\"",
+    "source": "Gollwitzer & Sheeran"
+  },
+  {
+    "id": "n-plan-03",
+    "slot": "night",
+    "stage": 2,
+    "category": "plan",
+    "text": "Decide now what tomorrow's first thirty seconds look like. Those thirty seconds are the whole problem. Everything after them is just running.",
+    "source": "Implementation intentions"
+  },
+  {
+    "id": "n-plan-04",
+    "slot": "night",
+    "stage": 3,
+    "category": "plan",
+    "text": "Lay it out before bed: shoes, clothes, keys, door. Every object you place tonight is a decision you will not have to make at five, when you are least equipped to make it.",
+    "source": "Friction removal; ego-depletion replication failure (Hagger et al., d = 0.06)"
+  },
+  {
+    "id": "n-sleep-01",
+    "slot": "night",
+    "stage": 1,
+    "category": "sleep",
+    "text": "Regularity beats duration. Across 60,977 adults, the most consistent sleepers had 20 to 48 percent lower all-cause mortality than the least consistent — independent of how long they slept. Protect the time, not the total.",
+    "source": "Windred et al., Sleep, 2024 (UK Biobank, n = 60,977)"
+  },
+  {
+    "id": "n-sleep-02",
+    "slot": "night",
+    "stage": 1,
+    "category": "sleep",
+    "text": "A 5:00 start is a 21:30 decision. Count backward. If you need seven hours, you were already late an hour ago.",
+    "source": "Sleep/wake regularity"
+  },
+  {
+    "id": "n-sleep-03",
+    "slot": "night",
+    "stage": "any",
+    "category": "sleep",
+    "text": "Put the alarm across the room and the phone face down. Snoozing drifts you back toward deep sleep, which makes 5:00 harder to leave, not easier.",
+    "source": "Sleep inertia countermeasures"
+  },
+  {
+    "id": "n-identity-01",
+    "slot": "night",
+    "stage": 2,
+    "category": "identity",
+    "text": "You are not trying to become someone who runs at five. You are accumulating evidence that you already are. Tomorrow is one more piece of it.",
+    "source": "Bem, self-perception theory"
+  },
+  {
+    "id": "n-streak-01",
+    "slot": "night",
+    "stage": 2,
+    "category": "streak",
+    "text": "The 21-day rule is a myth. The real median is 66 days, with a range from 18 to 254. You are not behind schedule. You are on the actual one.",
+    "source": "Lally et al., 2010"
+  },
+  {
+    "id": "n-recovery-01",
+    "slot": "night",
+    "stage": "any",
+    "category": "recovery",
+    "text": "You missed one. The evidence is unambiguous: a single missed day does not measurably slow habit formation. Abandoning the plan does. Write tomorrow's if-then now and the miss is closed.",
+    "source": "Lally et al., 2010; Herman & Mack, 1975 (what-the-hell effect)"
+  },
+  {
+    "id": "m-phys-01",
+    "slot": "morning",
+    "stage": "any",
+    "category": "physiology",
+    "text": "Sleep inertia peaks almost exactly now, at your core temperature minimum. This is the worst you will feel all day, and it is measured in minutes. Get light on your face and start moving.",
+    "source": "Sleep inertia at core-temp minimum"
+  },
+  {
+    "id": "m-phys-02",
+    "slot": "morning",
+    "stage": 1,
+    "category": "physiology",
+    "text": "Your cortisol is climbing 30 to 75 percent right now and will peak about half an hour after you woke. That surge is not stress. It is the system handing you the energy to do this.",
+    "source": "Cortisol awakening response (present in ~77% of people)"
+  },
+  {
+    "id": "m-phys-03",
+    "slot": "morning",
+    "stage": 1,
+    "category": "physiology",
+    "text": "Three things with actual evidence behind them: bright light immediately, roughly 100mg of caffeine, and no snooze. Do them in that order and grogginess clears faster.",
+    "source": "Sleep inertia countermeasure literature"
+  },
+  {
+    "id": "m-phys-04",
+    "slot": "morning",
+    "stage": "any",
+    "category": "physiology",
+    "text": "You are stiff and slow, and you are supposed to be — peak performance is a late-afternoon event. Mornings do not win on pace. They win on the fact that you actually show up.",
+    "source": "Circadian performance rhythms; NWCR adherence data"
+  },
+  {
+    "id": "m-identity-01",
+    "slot": "morning",
+    "stage": 2,
+    "category": "identity",
+    "text": "Every action is a vote for the kind of person you believe you are. You are about to cast one. Nobody is watching, which is precisely what makes it count.",
+    "source": "Bem, self-perception theory"
+  },
+  {
+    "id": "m-identity-02",
+    "slot": "morning",
+    "stage": 3,
+    "category": "identity",
+    "text": "This stopped being a challenge a while ago. It is now just a thing you do before the day starts. Protect that — the ordinariness is the achievement.",
+    "source": "Identity-based habit formation"
+  },
+  {
+    "id": "m-streak-01",
+    "slot": "morning",
+    "stage": 2,
+    "category": "streak",
+    "text": "Effort rises as the finish gets closer. That pull you feel toward protecting the number is real and well documented — use it. It is doing exactly what it should.",
+    "source": "Kivetz et al., 2006 (goal-gradient effect)"
+  },
+  {
+    "id": "m-streak-02",
+    "slot": "morning",
+    "stage": 3,
+    "category": "streak",
+    "text": "The most consistent exercisers in the long-term adherence data train between four and nine in the morning. Not because it is easier. Because nothing else has had a chance to take the hour yet.",
+    "source": "National Weight Control Registry"
+  },
+  {
+    "id": "m-recovery-01",
+    "slot": "morning",
+    "stage": "any",
+    "category": "recovery",
+    "text": "Yesterday was a miss. It costs you the streak number and nothing else — one lapse does not measurably damage a forming habit. The only real risk is deciding the whole thing is broken. It is not. Go.",
+    "source": "Lally et al., 2010; Herman & Mack, 1975"
+  },
+  {
+    "id": "m-recovery-02",
+    "slot": "morning",
+    "stage": "any",
+    "category": "recovery",
+    "text": "Treat today as the line. Fresh starts — a new week, a new month, the day after a break — measurably improve re-commitment. You do not need to earn your way back. You just need to leave the house.",
+    "source": "Dai, Milkman & Riis, 2014 (fresh start effect)"
+  }
+]

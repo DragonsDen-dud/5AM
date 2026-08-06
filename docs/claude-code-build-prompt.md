@@ -1,10 +1,10 @@
-# Claude Code Build Prompt — 5AM Run Club with Dennis
+# Claude Code Build Prompt — 5AM Run Club with Denys
 
 *Paste this directly into Claude Code / Claude Opus as the first message of the build session. It assumes `docs/5am-run-club-spec.md` and `docs/5am-run-club-research.md` are already committed to the repo it's working in — commit them first if they aren't.*
 
 ---
 
-Build a PWA called **"5AM Run Club with Dennis"** — a single-habit accountability tracker for a 5:00 AM daily run. Full specification is in `docs/5am-run-club-spec.md`; the behavioral-science backing for the content system is in `docs/5am-run-club-research.md`. **Read both files in full before writing any code.**
+Build a PWA called **"5AM Run Club with Denys"** — a single-habit accountability tracker for a 5:00 AM daily run. Full specification is in `docs/5am-run-club-spec.md`; the behavioral-science backing for the content system is in `docs/5am-run-club-research.md`. **Read both files in full before writing any code.**
 
 **What this app is:** one habit, one tool, tracked rigorously. It is not a general fitness app. Every feature either reminds the user, verifies they ran, shows their streak, or teaches them why the system works. Nothing else.
 
@@ -33,7 +33,7 @@ React + Vite + TypeScript + Tailwind CSS + Dexie.js (IndexedDB) + `vite-plugin-p
 8. **Calendar/History** (spec §3.4) — GitHub-contributions-style heat grid, immutable past entries, tap-to-view logged photo/note.
 9. **Stats** (spec §3.5) and **Settings** (spec §3.7) — include night-message timing and if-then plan history in Settings.
 10. **Notifications** — service worker wired for both night and morning push slots (Web Push API); explicit iOS onboarding step explaining the install-to-home-screen requirement, since push silently fails without it.
-11. **Icon/branding** — sunrise + running-figure mark with a Dragon's Den motif: a low, dark den/cave silhouette in the foreground, sun rising behind it, a running figure emerging from the den's mouth toward the light, and a subtle "00" integrated into the sun disc or horizon line (a quiet 2000-birth-year nod — should read as a design detail, not a number badge). Wordmark: "5AM RUN CLUB" in a tabular/scoreboard font, "WITH DENNIS" smaller beneath. If Adobe Express / Adobe for Creativity tools are available, generate two concept directions for selection; otherwise build clean placeholder icons in the palette below and flag final art as pending.
+11. **Icon/branding** — sunrise + running-figure mark with a Dragon's Den motif: a low, dark den/cave silhouette in the foreground, sun rising behind it, a running figure emerging from the den's mouth toward the light, and a subtle "00" integrated into the sun disc or horizon line (a quiet 2000-birth-year nod — should read as a design detail, not a number badge). Wordmark: "5AM RUN CLUB" in a tabular/scoreboard font, "WITH DENYS" smaller beneath. If Adobe Express / Adobe for Creativity tools are available, generate two concept directions for selection; otherwise build clean placeholder icons in the palette below and flag final art as pending.
 12. **Design system** — apply throughout:
     - Palette: deep navy/charcoal base (`#0B0F14`–`#111820`), sunrise amber/orange accent (`#FF6B35`/`#F7931E` family) used sparingly on CTA and streak number only, tactical/muted green for success, sober red-brown (not alarm-red) for miss
     - Typography: tabular/monospace-leaning font for the streak number and all stats (scoreboard feel — this should be the single largest element on the Home screen), clean humanist sans for body copy
