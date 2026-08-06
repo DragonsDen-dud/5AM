@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="5AM Run Club">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0B0F14"/>
+      <stop offset="0.62" stop-color="#111820"/>
+      <stop offset="1" stop-color="#1A2029"/>
+    </linearGradient>
+
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#FF6B35" stop-opacity="0.55"/>
+      <stop offset="0.45" stop-color="#F7931E" stop-opacity="0.20"/>
+      <stop offset="1" stop-color="#F7931E" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFB067"/>
+      <stop offset="0.45" stop-color="#F7931E"/>
+      <stop offset="1" stop-color="#FF6B35"/>
+    </linearGradient>
+
+    <linearGradient id="mouth" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFC489"/>
+      <stop offset="0.55" stop-color="#F7931E"/>
+      <stop offset="1" stop-color="#FF6B35"/>
+    </linearGradient>
+
+    <clipPath id="sunClip">
+      <circle cx="256" cy="286" r="104"/>
+    </clipPath>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#sky)"/>
+
+  <!-- Pre-dawn glow behind the ridge -->
+  <ellipse cx="256" cy="318" rx="256" ry="200" fill="url(#glow)"/>
+
+  <!-- Sun rising behind the den -->
+  <circle cx="256" cy="286" r="104" fill="url(#sun)"/>
+
+  <!--
+    Quiet "00" set low in the sun disc, where the ridge crops it. Deliberately
+    low-contrast and half-occluded: it should read as a mark on the horizon, not
+    as a number badge.
+  -->
+  <g clip-path="url(#sunClip)" fill="none" stroke="#B8491A" stroke-opacity="0.30" stroke-width="7">
+    <ellipse cx="233" cy="344" rx="15" ry="21"/>
+    <ellipse cx="279" cy="344" rx="15" ry="21"/>
+  </g>
+
+  <!-- Horizon line, cut by the sun -->
+  <rect x="0" y="332" width="512" height="3" fill="#FF6B35" opacity="0.22"/>
+
+  <!-- The den: a low, dark mound across the foreground -->
+  <path d="M0 512V432c46-2 92-12 136-32 42-19 78-46 120-46s78 27 120 46c44 20 90 30 136 32v80Z" fill="#060A0E"/>
+
+  <!-- Mouth of the den, lit from within -->
+  <path d="M196 512V430c0-33 27-60 60-60s60 27 60 60v82Z" fill="url(#mouth)"/>
+
+  <!-- Runner emerging from the den toward the light -->
+  <g fill="none" stroke="#060A0E" stroke-linecap="round" stroke-linejoin="round" transform="translate(196 392) scale(1.2)">
+    <circle cx="59" cy="16" r="10" fill="#060A0E" stroke="none"/>
+    <path d="M54 29 45 54" stroke-width="12"/>
+    <path d="M55 35 70 43 67 57" stroke-width="9"/>
+    <path d="M53 35 38 30 32 40" stroke-width="9"/>
+    <path d="M45 54 59 66 56 86" stroke-width="11"/>
+    <path d="M45 54 29 62 21 52" stroke-width="11"/>
+  </g>
+</svg>
