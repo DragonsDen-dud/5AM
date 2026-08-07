@@ -1,8 +1,14 @@
+import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db } from '../lib/db'
+import { db, saveSettings } from '../lib/db'
 import { formatClock, formatDateKey, formatDuration, todayKey } from '../lib/dates'
+import { detectFreshStart, type FreshStartTrigger } from '../lib/freshStart'
+import { FOOTBALL_MINUTES, toggleFootball } from '../lib/load'
+import { getReadiness } from '../lib/readiness'
 import { useNow } from '../hooks/useNow'
 import { AutomaticityBar, StreakDisplay } from '../components/StreakDisplay'
+import { ReadinessRow } from '../components/Readiness'
+import { SleepLog } from '../components/SleepLog'
 import { TimeBar } from '../components/TimeBar'
 import { RunDetailsForm } from '../components/RunDetailsForm'
 import {
@@ -12,7 +18,7 @@ import {
   windowRemainingFraction,
 } from '../lib/window'
 import { EMPTY_STREAK } from '../lib/db'
-import type { Settings } from '../lib/types'
+import type { ReadinessScore, Settings } from '../lib/types'
 
 interface Props {
   settings: Settings
@@ -36,11 +42,44 @@ export function Home({ settings, onOpenCheckIn }: Props) {
     () => db.nightPlans.where('date').equals(targetDate).first(),
     [targetDate],
   )
+  const sleepToday = useLiveQuery(
+    async () => (await db.sleepEntries.where('date').equals(today).first()) ?? null,
+    [today],
+  )
+  const loadToday = useLiveQuery(
+    async () => (await db.loadEntries.where('date').equals(today).first()) ?? null,
+    [today],
+  )
+
+  const [readiness, setReadiness] = useState<ReadinessScore | null>(null)
+  const [freshStart, setFreshStart] = useState<FreshStartTrigger | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    void (async () => {
+      const [score, trigger] = await Promise.all([
+        getReadiness(),
+        detectFreshStart(settings),
+      ])
+      if (cancelled) return
+      setReadiness(score)
+      setFreshStart(trigger)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [settings, today, todayLog, sleepToday])
 
   const streakState = streak ?? EMPTY_STREAK
   const window = windowForDate(settings, targetDate)
   const phase = windowPhase(window, now)
   const checkedIn = todayLog?.status === 'completed'
+  const rested = todayLog?.status === 'rest'
+
+  const dismissFreshStart = async () => {
+    await saveSettings({ lastFreshStartDate: today })
+    setFreshStart(null)
+  }
 
   return (
     <div className="flex min-h-[calc(100dvh-4.75rem)] flex-col gap-7 px-5 pt-2 pb-6">
@@ -60,12 +99,23 @@ export function Home({ settings, onOpenCheckIn }: Props) {
           longestStreak={streakState.longestStreak}
         />
         <AutomaticityBar currentStreak={streakState.currentStreak} />
+        {readiness && (
+          <div className="w-full max-w-xs">
+            <ReadinessRow score={readiness} />
+          </div>
+        )}
       </section>
+
+      {freshStart && <FreshStartCard trigger={freshStart} onDismiss={dismissFreshStart} />}
+
+      <StakeFollowUpCard settings={settings} />
 
       {/* The state block takes the remaining height so the screen never ends in
           a large void, whichever state is showing. */}
       <div className="flex flex-1 flex-col justify-center pb-4">
-        {checkedIn ? (
+        {rested ? (
+          <RestedState reason={todayLog?.restReason} />
+        ) : checkedIn ? (
           <CheckedInState logDate={targetDate} />
         ) : phase === 'before' ? (
           <BeforeWindow opensAt={window.opensAt} now={now} plan={plan?.planText} />
@@ -80,7 +130,109 @@ export function Home({ settings, onOpenCheckIn }: Props) {
           <MissedState why={settings.whyStatement} />
         )}
       </div>
+
+      <section className="flex flex-col gap-3">
+        <div className="card">
+          <div className="flex items-baseline justify-between">
+            <span className="label">Last night&rsquo;s sleep</span>
+            {sleepToday && (
+              <span className="tnum text-xs text-ink-dim">
+                {sleepToday.hoursSlept}h &middot; {sleepToday.quality}/5
+              </span>
+            )}
+          </div>
+          <div className="mt-4">
+            <SleepLog />
+          </div>
+          <p className="mt-3 text-[11px] leading-relaxed text-ink-faint">
+            Feeds the readiness signal. Two taps, then it leaves you alone.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => void toggleFootball(today)}
+          className={`flex items-center justify-between rounded-xl border px-4 py-3.5 text-left transition-colors ${
+            loadToday?.footballPlayed
+              ? 'border-ember/40 bg-base-850'
+              : 'border-base-700 bg-base-850/50'
+          }`}
+        >
+          <span>
+            <span
+              className={`text-sm font-semibold ${
+                loadToday?.footballPlayed ? 'text-ember' : 'text-ink'
+              }`}
+            >
+              {loadToday?.footballPlayed ? 'Football logged today' : 'Played football today'}
+            </span>
+            <span className="mt-0.5 block text-[11px] text-ink-faint">
+              Counted as ~{FOOTBALL_MINUTES} minutes at hard effort, toward your training load.
+            </span>
+          </span>
+          <span
+            className={`h-4 w-4 shrink-0 rounded-full border ${
+              loadToday?.footballPlayed ? 'border-ember bg-ember' : 'border-base-500'
+            }`}
+          />
+        </button>
+      </section>
     </div>
+  )
+}
+
+function FreshStartCard({
+  trigger,
+  onDismiss,
+}: {
+  trigger: FreshStartTrigger
+  onDismiss: () => void
+}) {
+  return (
+    <section className="rounded-xl border border-ember/35 bg-base-850 p-5">
+      <span className="label text-ember/80">Clean start</span>
+      <p className="mt-2 leading-relaxed text-ink">{trigger.message}</p>
+      <p className="mt-3 text-[11px] leading-snug text-ink-faint">
+        Dai, Milkman &amp; Riis, 2014 (fresh start effect)
+      </p>
+      <button type="button" onClick={onDismiss} className="btn-secondary mt-4 w-full">
+        Understood
+      </button>
+    </section>
+  )
+}
+
+function StakeFollowUpCard({ settings }: { settings: Settings }) {
+  const pending = useLiveQuery(
+    async () =>
+      (await db.stakeFollowUps.filter((f) => f.acknowledgedAt === undefined).first()) ?? null,
+    [],
+  )
+
+  if (!settings.commitmentStake || !pending) return null
+
+  return (
+    <section className="rounded-xl border border-base-600 bg-base-850 p-5">
+      <span className="label">Your commitment</span>
+      <p className="mt-2 text-sm leading-relaxed text-ink-dim">
+        You missed {formatDateKey(pending.date)}. You said the consequence would be:
+      </p>
+      <p className="mt-2 leading-relaxed text-ink">{pending.stake}</p>
+      <button
+        type="button"
+        onClick={() =>
+          void db.stakeFollowUps.update(pending.id as number, {
+            acknowledgedAt: new Date().toISOString(),
+          })
+        }
+        className="btn-secondary mt-4 w-full"
+      >
+        Done — I followed through
+      </button>
+      <p className="mt-3 text-[11px] leading-relaxed text-ink-faint">
+        Honor system. The app tracks the promise; it cannot enforce it and does not try.
+      </p>
+    </section>
   )
 }
 
@@ -156,6 +308,19 @@ function CheckedInState({ logDate }: { logDate: string }) {
           </div>
         </div>
       )}
+    </section>
+  )
+}
+
+function RestedState({ reason }: { reason?: string }) {
+  return (
+    <section className="rounded-xl border border-base-600 bg-base-850 px-5 py-6">
+      <p className="tnum text-2xl font-semibold tracking-[0.12em] text-ink-dim">REST</p>
+      <p className="mt-3 text-sm leading-relaxed text-ink-dim">
+        A deliberate rest day, taken on a red readiness call. The streak carries. Lifetime runs do
+        not move, because you did not run — the record stays honest in both directions.
+      </p>
+      {reason && <p className="mt-3 text-[11px] leading-relaxed text-ink-faint">{reason}</p>}
     </section>
   )
 }

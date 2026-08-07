@@ -1,3 +1,4 @@
+import { stageOneExtensionDays } from './chronotype'
 import { daysBetween, todayKey } from './dates'
 import type { MessageStage, Settings } from './types'
 
@@ -9,10 +10,35 @@ export const STAGE_LABELS: Record<Stage, string> = {
   3: 'Fortifying',
 }
 
-export const STAGE_DESCRIPTIONS: Record<Stage, string> = {
-  1: 'Days 1–21. The work is protecting the fixed time and writing the plan.',
-  2: 'Days 22–70. The work is identity and accumulated evidence.',
-  3: 'Day 71 onward. The work is holding the line through the bad weeks.',
+export const BASE_STAGE_ONE_END = 21
+export const BASE_STAGE_TWO_END = 70
+
+/**
+ * Stage boundaries, adjusted for chronotype (phase-2 §1.2). An evening type
+ * gets a longer schedule-building runway rather than being measured against a
+ * morning type's pace and told they are behind.
+ */
+export function stageBoundaries(settings: Settings): { stageOneEnd: number; stageTwoEnd: number } {
+  const extension = stageOneExtensionDays(settings.chronotypeBand)
+  return {
+    stageOneEnd: BASE_STAGE_ONE_END + extension,
+    stageTwoEnd: BASE_STAGE_TWO_END + extension,
+  }
+}
+
+export function stageDescription(stage: Stage, settings: Settings): string {
+  const { stageOneEnd, stageTwoEnd } = stageBoundaries(settings)
+  const extended = stageOneEnd > BASE_STAGE_ONE_END
+  switch (stage) {
+    case 1:
+      return `Days 1–${stageOneEnd}. The work is protecting the fixed time and writing the plan.${
+        extended ? ' Extended for your chronotype — the runway is longer, not the standard lower.' : ''
+      }`
+    case 2:
+      return `Days ${stageOneEnd + 1}–${stageTwoEnd}. The work is identity and accumulated evidence.`
+    default:
+      return `Day ${stageTwoEnd + 1} onward. The work is holding the line through the bad weeks.`
+  }
 }
 
 /** Day 1 is the onboarding day itself. */
@@ -26,8 +52,9 @@ export function daysSinceOnboarding(settings: Settings, now: Date = new Date()):
  */
 export function currentStage(settings: Settings, now: Date = new Date()): Stage {
   const days = daysSinceOnboarding(settings, now)
-  if (days <= 21) return 1
-  if (days <= 70) return 2
+  const { stageOneEnd, stageTwoEnd } = stageBoundaries(settings)
+  if (days <= stageOneEnd) return 1
+  if (days <= stageTwoEnd) return 2
   return 3
 }
 

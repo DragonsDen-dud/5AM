@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, getSettings, seedMessageBank } from './lib/db'
+import { db, getSettings, saveSettings, seedMessageBank } from './lib/db'
 import { addDays, parseTime, todayKey } from './lib/dates'
 import { reconcileMissedDays } from './lib/reconcile'
+import { generationIsDue, runWeeklyGeneration } from './lib/generate'
 import { startLocalReminderScheduler } from './lib/notifications'
+import { ChronotypeQuiz } from './components/ChronotypeQuiz'
 import { useNow } from './hooks/useNow'
 import { BottomNav, type Tab } from './components/BottomNav'
 import { NightCard } from './components/NightCard'
@@ -52,6 +54,16 @@ function Shell({ settings }: { settings: Settings }) {
 
   useEffect(() => startLocalReminderScheduler(settings), [settings])
 
+  /*
+   * Weekly message generation. Fire-and-forget on purpose: a failed or
+   * unconfigured generation must never block the app, and everything it drafts
+   * lands in review rather than in rotation.
+   */
+  useEffect(() => {
+    if (!generationIsDue(settings)) return
+    void runWeeklyGeneration(settings).catch(() => undefined)
+  }, [settings, today])
+
   // The night card plans for tomorrow, so it is keyed to tomorrow's run date.
   const tomorrow = addDays(today, 1)
   const tonightPlan = useLiveQuery(
@@ -62,6 +74,14 @@ function Shell({ settings }: { settings: Settings }) {
   const minutesNow = now.getHours() * 60 + now.getMinutes()
   const nightDue =
     minutesNow >= parseTime(settings.nightMessageTime) && tonightPlan === null && !checkInOpen
+
+  /*
+   * Existing users predate the chronotype step, so they get an optional prompt
+   * rather than a forced one — the assessment calibrates pacing, and a user who
+   * declines it simply keeps the default pacing.
+   */
+  const chronotypeDue =
+    !settings.chronotypeBand && !settings.chronotypePromptDismissed && !nightDue && !checkInOpen
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -74,9 +94,52 @@ function Shell({ settings }: { settings: Settings }) {
 
       <BottomNav active={tab} onChange={setTab} />
 
+      {chronotypeDue && (
+        <ChronotypePrompt
+          onDone={(patch) => void saveSettings(patch)}
+        />
+      )}
+
       {checkInOpen && <CheckIn settings={settings} onClose={() => setCheckInOpen(false)} />}
       {/* Dismissal is driven by the plan appearing in the live query, not by a callback. */}
       {nightDue && <NightCard settings={settings} onDone={() => undefined} />}
+    </div>
+  )
+}
+
+/**
+ * Post-onboarding chronotype prompt for users who installed before Phase 2.
+ * Dismissable — unlike the night card, nothing here is load-bearing enough to
+ * justify blocking the app.
+ */
+function ChronotypePrompt({ onDone }: { onDone: (patch: Partial<Settings>) => void }) {
+  return (
+    <div className="fixed inset-0 z-40 overflow-y-auto bg-base-900">
+      <div className="mx-auto flex min-h-full w-full max-w-md flex-col gap-6 px-5 safe-t safe-b">
+        <header className="pt-4">
+          <span className="label">New in this version</span>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight">Your clock</h1>
+          <p className="mt-2 leading-relaxed text-ink-dim">
+            Six questions. Five in the morning sits at a different distance from everyone&rsquo;s
+            natural clock — this calibrates how the app paces you, and nothing else.
+          </p>
+        </header>
+
+        <div className="flex-1 pb-8">
+          <ChronotypeQuiz
+            onComplete={(score, band) =>
+              onDone({
+                chronotypeScore: score,
+                chronotypeBand: band,
+                chronotypeAnsweredAt: new Date().toISOString(),
+                chronotypePromptDismissed: true,
+              })
+            }
+            onSkip={() => onDone({ chronotypePromptDismissed: true })}
+            skipLabel="Not now"
+          />
+        </div>
+      </div>
     </div>
   )
 }

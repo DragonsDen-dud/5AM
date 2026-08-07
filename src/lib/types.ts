@@ -1,7 +1,8 @@
 /** Photo is the Phase 1 default. GPS is out of scope — cut, not deferred. */
 export type VerificationMethod = 'photo' | 'honor'
 
-export type RunStatus = 'completed' | 'missed'
+/** `rest` is a deliberate red-readiness rest day — it holds the streak (phase-2 §1.4). */
+export type RunStatus = 'completed' | 'missed' | 'rest'
 
 export type MessageSlot = 'night' | 'morning'
 
@@ -15,6 +16,8 @@ export type MessageCategory =
   | 'streak'
   | 'recovery'
   | 'plan'
+  /** Phase 2 — posterior-chain prep, surfaced when load or football flags. */
+  | 'injury-aware'
 
 export interface RunLog {
   id?: number
@@ -30,6 +33,8 @@ export interface RunLog {
   effort?: number
   note?: string
   photoBlob?: Blob
+  /** Phase 2. Set on a `rest` entry so the calendar can explain itself. */
+  restReason?: string
 }
 
 export interface Settings {
@@ -52,6 +57,41 @@ export interface Settings {
    */
   trackingStartsOn: string
   onboardingComplete: boolean
+
+  /* ── Phase 2 ─────────────────────────────────────────────────────────── */
+
+  /** Raw questionnaire score. Absent until the chronotype step is answered. */
+  chronotypeScore?: number
+  chronotypeBand?: ChronotypeBand
+  /** ISO timestamp. Also used to stop re-prompting existing users who declined. */
+  chronotypeAnsweredAt?: string
+  /** Set once the optional post-onboarding prompt has been shown and dismissed. */
+  chronotypePromptDismissed?: boolean
+
+  /** Confirmed in-app rather than assumed, so it lives in the data model. */
+  hamstringHistoryConfirmed?: boolean
+  injuryNotes?: string
+
+  /** Temptation bundling — the one thing reserved for the run. */
+  runOnlyReward?: string
+  /** Honor-system only. The app tracks and prompts; it never processes anything. */
+  commitmentStake?: string
+  /**
+   * ISO timestamp of when the commitment layer first became available. Once
+   * unlocked it stays unlocked — losing a streak should not also confiscate a
+   * mechanism you had already earned.
+   */
+  commitmentUnlockedAt?: string
+
+  /** Anthropic API key for message generation. Local-only; excluded from export. */
+  anthropicApiKey?: string
+  /** Optional backend that holds the key instead. Preferred when you have one. */
+  generationProxyUrl?: string
+  generationEnabled?: boolean
+  /** YYYY-MM-DD of the last generation run — the pipeline is weekly. */
+  lastGenerationDate?: string
+  /** YYYY-MM-DD of the last dormancy re-engagement card shown. */
+  lastFreshStartDate?: string
 }
 
 export interface StreakState {
@@ -71,6 +111,14 @@ export interface Message {
   text: string
   /** Short attribution for the evidence behind the message, where there is one. */
   source?: string
+
+  /* Phase 2 — generated messages live in this same table and rotation pool. */
+  origin?: 'seed' | 'generated'
+  /** 1 while awaiting review, 0 once approved. Numeric because IndexedDB cannot index booleans. */
+  pendingReview?: 0 | 1
+  generatedAt?: string
+  /** Stored for auditability — what the model was asked. */
+  sourcePrompt?: string
 }
 
 export interface MessageHistory {
@@ -89,4 +137,84 @@ export interface NightPlan {
   /** ISO timestamp of when it was written. */
   createdAt: string
   messageId: string
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * Phase 2 — readiness, load management, adaptive content, commitment.
+ * Everything below is additive. Phase 1 shapes above are unchanged except
+ * `RunStatus`, which gains `rest` so a red-readiness rest day can preserve the
+ * streak (phase-2 spec §1.4).
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+export type ReadinessLevel = 'green' | 'amber' | 'red'
+
+/** What you chose on a red day. Recorded so the choice itself is auditable. */
+export type RedDayChoice = 'ran' | 'easy' | 'rest'
+
+export type SleepSourceId = 'manual' | 'healthkit' | 'googlefit'
+
+/**
+ * Condensed morningness–eveningness score. Higher is more morning-typed.
+ * Informational only — it calibrates messaging and stage pacing, never access.
+ */
+export type ChronotypeBand =
+  | 'definite-evening'
+  | 'moderate-evening'
+  | 'intermediate'
+  | 'moderate-morning'
+  | 'definite-morning'
+
+export interface SleepEntry {
+  id?: number
+  /** YYYY-MM-DD of the morning you woke. */
+  date: string
+  hoursSlept: number
+  /** 1–5. */
+  quality: number
+  source: SleepSourceId
+  loggedAt: string
+}
+
+export interface LoadEntry {
+  id?: number
+  /** YYYY-MM-DD, unique. */
+  date: string
+  durationMin: number
+  /** 1–5. */
+  effort: number
+  footballPlayed: boolean
+  /** Session-RPE proxy: duration × effort, summed across the day's sessions. */
+  sessionLoad: number
+}
+
+export interface ReadinessScore {
+  /** YYYY-MM-DD, primary key. */
+  date: string
+  level: ReadinessLevel
+  /** Plain-language, generated at compute time. Never a raw number. */
+  reasoning: string
+  computedAt: string
+  /** What you chose when the level was red. Absent on green/amber days. */
+  choice?: RedDayChoice
+}
+
+export interface MessagePerformance {
+  /** `${slot}:${category}` — Dexie needs a single-value primary key. */
+  id: string
+  slot: MessageSlot
+  category: MessageCategory
+  /** Completion rate on the day(s) following exposure to this category. */
+  rollingCompletionRate: number
+  /** How many exposures the rate is computed from. Small samples are ignored. */
+  sampleSize: number
+  lastRecomputed: string
+}
+
+export interface StakeFollowUp {
+  id?: number
+  /** YYYY-MM-DD of the miss that triggered it. */
+  date: string
+  stake: string
+  /** ISO timestamp. Absent until you mark it done. */
+  acknowledgedAt?: string
 }
