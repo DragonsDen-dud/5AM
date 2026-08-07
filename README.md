@@ -8,7 +8,7 @@ A single-habit accountability PWA for one thing: being out the door and running 
 
 **This app is not an alarm and cannot become one.** A PWA cannot wake a sleeping phone, override silent mode, or play sound from a suspended tab. That is an OS-level entitlement (iOS critical alerts, Android exact alarms) that web apps are not granted — on iOS, Apple reserves it for medical and safety apps and does not hand it to habit trackers.
 
-Your phone's Clock app does the waking. This app is the accountability layer that takes over the moment the alarm goes off, which is where a 5AM habit is actually won or lost. A true alarm would mean wrapping this in Capacitor and shipping a native build — Phase 2, not this.
+Your phone's Clock app does the waking. This app is the accountability layer that takes over the moment the alarm goes off, which is where a 5AM habit is actually won or lost. A true alarm would mean wrapping this in Capacitor and shipping a native build. That was reviewed for Phase 2 and deliberately not built: Apple has a documented pattern of rejecting the critical-alerts entitlement for alarm-clock use cases, so the payoff is asymmetric — Android gains real ground, iOS barely moves.
 
 Notifications work as follows:
 
@@ -19,6 +19,38 @@ Notifications work as follows:
 | Everywhere | Reminders are local timers unless a push backend is configured (see below). They fire reliably while the app has been opened recently; they are not a guarantee. |
 
 To enable real server push, set `VITE_VAPID_PUBLIC_KEY` and stand up a backend holding the matching private key. The service worker's `push` and `notificationclick` handlers are already wired (`sw.ts`) — turning it on is a deployment step, not a rewrite.
+
+---
+
+## Phase 2 — what the app now knows
+
+Phase 1 proved the loop works structurally. Phase 2 makes the app know things about the body it is coaching, and adapt instead of running a fixed script. Everything added here is **advisory and transparent**: nothing new can gate a check-in, and nothing hides its reasoning.
+
+- **Chronotype** — a condensed six-question morningness–eveningness assessment at onboarding (optional prompt for existing users). It never gates anything; it lengthens Stage 1 for evening types so they are paced against their own clock rather than told they are behind.
+- **Sleep** — two-tap hours/quality logging behind a `SleepSource` interface. Only `manual` is implemented; a HealthKit or Google Fit source drops into the registry without touching a single caller or the schema.
+- **Readiness** — Green / Amber / Red from your 7-day sleep average against *your own* median baseline, consecutive training-adjacent days, and last logged effort. One line of plain-language reasoning, never a raw number. Green and Amber never interrupt. Red inserts one screen with a genuine three-way choice — run anyway, easy version, or rest — and records which you picked.
+- **Rest days hold the streak.** A red-day rest is logged permanently as a rest, bridges the streak, and does not increment lifetime runs. Only a miss breaks the chain. Rest days are excluded from completion rate on both sides.
+- **Load and ACWR** — session-RPE load (duration × effort) plus a one-tap football log, rolled into 7-day acute and 28-day chronic averages. The ratio surfaces only when it enters the elevated range, as an ordinary Content Engine card. A monthly (not daily) load review lands on Stats.
+- **Adaptive rotation** — an epsilon-greedy bandit over message *categories* (85% exploit / 15% explore), recomputed weekly. It re-weights **inside** the pool the Phase 1 rules already produced: the recovery override and the 10-day no-repeat window run first and are never overruled. The current weighting is shown in plain language in Settings.
+- **Generated messages** — a weekly Claude call drafts new messages in the same voice, grounded in the research file and your actual recent stats, self-tagged by the existing taxonomy. Everything lands as `pendingReview` and cannot enter rotation until you approve it by hand.
+- **Commitment layer** — temptation bundling and an honor-system stake, off by default and not offered until a 21-day streak. Once unlocked it stays unlocked.
+- **Fresh start** — after 3+ consecutive missed days, a distinct re-engagement card at the next temporal landmark. Separate copy and a separate trigger from the daily recovery message.
+- **Stats v2** — completion trend, readiness alongside completion, ACWR trend, and message-category performance. One chart visible at a time.
+
+### The generative pipeline, and your API key
+
+This is the one feature that talks to a network, and it is off until you turn it on. Two transports:
+
+1. **A proxy endpoint you control** (`generationProxyUrl` in Settings) that holds the key server-side. Use this if you ever stand one up.
+2. **A key you paste into Settings**, stored in this device's IndexedDB and sent only to Anthropic.
+
+No key is bundled with the app, and the key is excluded from the JSON export. It is still a key in browser storage — scope it to this and nothing else, and revoke it if you lose the device. The SDK is dynamically imported, so it never lands in the main bundle for anyone who leaves this off.
+
+The evidence constraint is enforced **in the system prompt itself**, not as a hope: the model is given `src/data/research-summary.json` as its complete evidence base and is instructed never to invent a statistic, never to promise a performance or health outcome, and to flag uncertainty rather than fill it. Output is self-tagged and held for review.
+
+### Explicitly not built in Phase 2
+
+Native Capacitor shell (Apple does not grant the critical-alerts entitlement for alarm-clock use cases — a policy wall, not an engineering gap), automated payment or stakes processing, wearable integrations beyond the `SleepSource` interface, weather, multi-user, and social features.
 
 ---
 
@@ -63,19 +95,27 @@ React 19 + Vite + TypeScript + Tailwind CSS 4 + Dexie.js (IndexedDB) + `vite-plu
 Everything is stored on-device. There is no account, no server, and nothing is uploaded — including check-in photos.
 
 ```
-├── docs/                     spec, research brief, original build prompt
+├── docs/                     specs (phase 1 + 2), research brief, build prompts
 ├── public/icons/             icon.svg source + generated PWA icon set
 ├── scripts/build-icons.mjs   renders the icon set from icon.svg
 ├── src/
 │   ├── components/           StreakDisplay, TimeBar, MessageCard, NightCard, …
 │   ├── data/messages.json    the content bank — edit this to change copy
+│   ├── data/research-summary.json  evidence base for generated messages
 │   ├── hooks/
 │   ├── lib/                  db, streak, window, content, reconcile, notifications
+│   │                         readiness, load, sleep, bandit, generate, trends
 │   │   └── verification/     photo.ts, honor.ts
 │   └── screens/              Onboarding, Home, CheckIn, History, Stats, Settings
 ├── sw.ts                     service worker: precache, push, notificationclick
 └── vercel.json
 ```
+
+### A note on the schema migration
+
+Dexie v1 → v2 is additive: five new tables, two new indexes on `messages`, no field removed. The upgrade backfills `origin`/`pendingReview` on existing messages explicitly — IndexedDB drops records with an undefined value from that field's index, which would otherwise hide every Phase 1 message from the review query — and backfills `LoadEntry` rows from Phase 1 runs that already recorded duration and effort, so ACWR has a chronic window immediately rather than 28 days from now.
+
+This is tested against real Phase 1 data, not a clean install: the test drives the actual Phase 1 bundle's onboarding, injects a month of history, then swaps the origin to the Phase 2 bundle and reloads over the same database.
 
 ### A note on `reconcile.ts`
 

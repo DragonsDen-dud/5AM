@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { DEFAULT_SETTINGS, saveSettings } from '../lib/db'
 import { Wordmark } from '../components/Wordmark'
+import { ChronotypeQuiz } from '../components/ChronotypeQuiz'
+import { BAND_LABELS, BAND_NOTES, type ChronotypeBand } from '../lib/chronotype'
 import { addDays, atMinutes, formatTime, parseTime, todayKey } from '../lib/dates'
 import { WINDOW_LEAD_MINUTES } from '../lib/window'
 import {
@@ -10,7 +12,16 @@ import {
 } from '../lib/notifications'
 import type { VerificationMethod } from '../lib/types'
 
-type StepId = 'intro' | 'time' | 'method' | 'why' | 'night' | 'notify' | 'ios'
+type StepId =
+  | 'intro'
+  | 'time'
+  | 'chronotype'
+  | 'method'
+  | 'injury'
+  | 'why'
+  | 'night'
+  | 'notify'
+  | 'ios'
 
 export function Onboarding() {
   const env = useMemo(() => detectNotificationEnvironment(), [])
@@ -23,8 +34,22 @@ export function Onboarding() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(false)
   const [finishing, setFinishing] = useState(false)
 
+  const [chronotypeScore, setChronotypeScore] = useState<number | null>(null)
+  const [chronotypeBand, setChronotypeBand] = useState<ChronotypeBand | null>(null)
+  const [hamstringHistory, setHamstringHistory] = useState<boolean | null>(null)
+  const [injuryNotes, setInjuryNotes] = useState('')
+
   const steps = useMemo<StepId[]>(() => {
-    const base: StepId[] = ['intro', 'time', 'method', 'why', 'night', 'notify']
+    const base: StepId[] = [
+      'intro',
+      'time',
+      'chronotype',
+      'method',
+      'injury',
+      'why',
+      'night',
+      'notify',
+    ]
     return env.needsHomeScreenInstall ? [...base, 'ios'] : base
   }, [env.needsHomeScreenInstall])
 
@@ -54,6 +79,12 @@ export function Onboarding() {
       onboardedAt: today,
       trackingStartsOn: now <= todayClosesAt ? today : addDays(today, 1),
       onboardingComplete: true,
+      chronotypeScore: chronotypeScore ?? undefined,
+      chronotypeBand: chronotypeBand ?? undefined,
+      chronotypeAnsweredAt: chronotypeBand ? new Date().toISOString() : undefined,
+      chronotypePromptDismissed: true,
+      hamstringHistoryConfirmed: hamstringHistory ?? false,
+      injuryNotes: injuryNotes.trim() || undefined,
     })
   }
 
@@ -137,6 +168,42 @@ export function Onboarding() {
           </Step>
         )}
 
+        {step === 'chronotype' && (
+          <Step
+            title="Your clock"
+            lead="Six quick questions. Five in the morning sits at a different distance from everyone's natural clock, and the app should know yours."
+          >
+            {chronotypeBand === null ? (
+              <ChronotypeQuiz
+                onComplete={(score, band) => {
+                  setChronotypeScore(score)
+                  setChronotypeBand(band)
+                }}
+              />
+            ) : (
+              <div className="flex flex-col gap-4">
+                <div className="card">
+                  <span className="label">Result</span>
+                  <p className="mt-2 font-semibold">{BAND_LABELS[chronotypeBand]}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-ink-dim">
+                    {BAND_NOTES[chronotypeBand]}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setChronotypeBand(null)
+                    setChronotypeScore(null)
+                  }}
+                  className="btn-ghost text-xs"
+                >
+                  Answer again
+                </button>
+              </div>
+            )}
+          </Step>
+        )}
+
         {step === 'method' && (
           <Step title="How you prove it" lead="Pick one. You can change it later in Settings.">
             <div className="flex flex-col gap-3">
@@ -154,6 +221,59 @@ export function Onboarding() {
                 onSelect={() => setMethod('honor')}
               />
             </div>
+          </Step>
+        )}
+
+        {step === 'injury' && (
+          <Step
+            title="Injury history"
+            lead="Running daily on top of football and the gym loads the same posterior chain three ways. The app manages that risk — but only if it knows."
+          >
+            <div>
+              <span className="label">Previous hamstring or posterior-chain strain?</span>
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                {[
+                  { value: true, label: 'Yes' },
+                  { value: false, label: 'No' },
+                ].map((option) => {
+                  const active = hamstringHistory === option.value
+                  return (
+                    <button
+                      key={option.label}
+                      type="button"
+                      onClick={() => setHamstringHistory(option.value)}
+                      className={`rounded-lg border py-3 text-sm font-semibold transition-colors ${
+                        active
+                          ? 'border-ember bg-base-850 text-ember'
+                          : 'border-base-600 bg-base-850/50 text-ink'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="injury-notes" className="label">
+                Anything else worth knowing
+              </label>
+              <textarea
+                id="injury-notes"
+                value={injuryNotes}
+                onChange={(e) => setInjuryNotes(e.target.value)}
+                rows={3}
+                maxLength={280}
+                className="field mt-2 resize-none"
+                placeholder="Shoulder tightness, old ankle, whatever tends to flare."
+              />
+            </div>
+
+            <p className="text-[11px] leading-relaxed text-ink-faint">
+              Used to weight warm-up and load messaging. This is not medical advice and the app does
+              not diagnose anything.
+            </p>
           </Step>
         )}
 
@@ -257,14 +377,16 @@ export function Onboarding() {
       </div>
 
       <footer className="flex items-center gap-3 pb-6">
-        {index > 0 && (
+        {index > 0 && step !== 'chronotype' && (
           <button type="button" onClick={() => setIndex((i) => i - 1)} className="btn-ghost">
             Back
           </button>
         )}
-        <button type="button" onClick={next} className="btn-primary flex-1" disabled={finishing}>
-          {isLast ? (finishing ? 'Starting' : 'Start') : 'Continue'}
-        </button>
+        {(step !== 'chronotype' || chronotypeBand !== null) && (
+          <button type="button" onClick={next} className="btn-primary flex-1" disabled={finishing}>
+            {isLast ? (finishing ? 'Starting' : 'Start') : 'Continue'}
+          </button>
+        )}
       </footer>
     </div>
   )

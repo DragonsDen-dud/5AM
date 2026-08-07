@@ -1,4 +1,5 @@
 import { db } from './db'
+import { refreshPerformance, weightsForSlot, type BanditWeights } from './bandit'
 import { addDays, todayKey } from './dates'
 import { currentStage, stageMatches, type Stage } from './stage'
 import { lastResolvedDate } from './window'
@@ -11,21 +12,47 @@ export const NO_REPEAT_DAYS = 10
 export const PLAN_WEIGHT = 2
 
 /**
+ * Phase 2 §2.3 — `injury-aware` is boosted when the load system is actually
+ * flagging something. Outside those conditions it sits in normal rotation
+ * rather than nagging about a hamstring every morning.
+ */
+export const INJURY_AWARE_WEIGHT = 3
+
+export interface RotationContext {
+  /** ACWR is elevated, or football landed on a running day. */
+  injuryRiskFlagged?: boolean
+}
+
+/**
  * Weighted random pick. Kept pure and exported so the rotation rules can be
  * reasoned about (and tested) without touching IndexedDB.
  */
-export function weightedPick(pool: Message[], slot: MessageSlot): Message | null {
+export function weightedPick(
+  pool: Message[],
+  slot: MessageSlot,
+  bandit?: BanditWeights,
+  context: RotationContext = {},
+  roll: number = Math.random(),
+): Message | null {
   if (pool.length === 0) return null
 
-  const weights = pool.map((m) =>
-    slot === 'night' && m.category === 'plan' ? PLAN_WEIGHT : 1,
-  )
-  const total = weights.reduce((a, b) => a + b, 0)
+  const weights = pool.map((m) => {
+    let weight = 1
+    if (slot === 'night' && m.category === 'plan') weight *= PLAN_WEIGHT
+    if (context.injuryRiskFlagged && m.category === 'injury-aware') weight *= INJURY_AWARE_WEIGHT
+    // Bandit weighting is applied last and only re-scales inside the pool the
+    // hard rules already produced.
+    if (bandit && !bandit.exploring) weight *= bandit.byCategory.get(m.category) ?? 1
+    return weight
+  })
 
-  let roll = Math.random() * total
+  const total = weights.reduce((a, b) => a + b, 0)
+  if (total <= 0) return pool[0]
+
+  let remaining = roll * total
   for (let i = 0; i < pool.length; i += 1) {
-    roll -= weights[i]
-    if (roll <= 0) return pool[i]
+    remaining -= weights[i]
+    if (remaining <= 0) return pool[i]
   }
   return pool[pool.length - 1]
 }
@@ -62,10 +89,13 @@ interface SelectionContext {
   forceRecovery: boolean
   /** Message ids shown within the no-repeat window. */
   recentIds: Set<string>
+  bandit?: BanditWeights
+  rotation?: RotationContext
 }
 
 export function selectMessage(all: Message[], ctx: SelectionContext): Message | null {
-  const inSlot = all.filter((m) => m.slot === ctx.slot)
+  // Generated messages awaiting review never enter rotation.
+  const inSlot = all.filter((m) => m.slot === ctx.slot && m.pendingReview !== 1)
 
   // Step 3 runs ahead of steps 1–2: on a forced recovery the stage filter is skipped.
   let pool = ctx.forceRecovery
@@ -81,7 +111,9 @@ export function selectMessage(all: Message[], ctx: SelectionContext): Message | 
 
   // Step 4: drop the no-repeat exclusion rather than return nothing.
   const fresh = pool.filter((m) => !ctx.recentIds.has(m.id))
-  return weightedPick(fresh.length > 0 ? fresh : pool, ctx.slot)
+  const finalPool = fresh.length > 0 ? fresh : pool
+
+  return weightedPick(finalPool, ctx.slot, ctx.bandit, ctx.rotation)
 }
 
 /**
@@ -93,6 +125,7 @@ export async function getDailyMessage(
   settings: Settings,
   slot: MessageSlot,
   now: Date = new Date(),
+  rotation: RotationContext = {},
 ): Promise<Message | null> {
   const dateKey = todayKey(now)
 
@@ -106,10 +139,11 @@ export async function getDailyMessage(
     if (existing) return existing
   }
 
-  const [all, forceRecovery, recent] = await Promise.all([
+  const [all, forceRecovery, recent, performance] = await Promise.all([
     db.messages.toArray(),
     shouldForceRecovery(settings, now),
     db.messageHistory.where('shownDate').aboveOrEqual(addDays(dateKey, -NO_REPEAT_DAYS)).toArray(),
+    refreshPerformance(now),
   ])
 
   const picked = selectMessage(all, {
@@ -117,6 +151,8 @@ export async function getDailyMessage(
     stage: currentStage(settings, now),
     forceRecovery,
     recentIds: new Set(recent.map((h) => h.messageId)),
+    bandit: weightsForSlot(performance, slot),
+    rotation,
   })
 
   if (!picked) return null

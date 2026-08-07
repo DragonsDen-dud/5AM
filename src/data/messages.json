@@ -158,5 +158,37 @@
     "category": "recovery",
     "text": "Treat today as the line. Fresh starts — a new week, a new month, the day after a break — measurably improve re-commitment. You do not need to earn your way back. You just need to leave the house.",
     "source": "Dai, Milkman & Riis, 2014 (fresh start effect)"
+  },
+  {
+    "id": "n-injury-01",
+    "slot": "night",
+    "stage": "any",
+    "category": "injury-aware",
+    "text": "Lay out five minutes of hamstring prep with the kit tonight: leg swings, walking hamstring sweeps, two build-up strides before you settle into pace. Cold posterior chain at five in the morning is how old strains reintroduce themselves.",
+    "source": "Dynamic warm-up and posterior-chain preparation"
+  },
+  {
+    "id": "n-injury-02",
+    "slot": "night",
+    "stage": "any",
+    "category": "injury-aware",
+    "text": "Football, gym, and a daily run all draw on the same posterior chain. Stacking them is not toughness, it is arithmetic — and the arithmetic is what decides whether you are still running in six months.",
+    "source": "Acute:chronic workload ratio (Gabbett)"
+  },
+  {
+    "id": "m-injury-01",
+    "slot": "morning",
+    "stage": "any",
+    "category": "injury-aware",
+    "text": "Do not sprint out of the door onto a cold hamstring. Two minutes of walking and easy build-ups first. You have strained it before; the whole point of prep is that it is boring and it works.",
+    "source": "Dynamic warm-up; personal injury history"
+  },
+  {
+    "id": "m-injury-02",
+    "slot": "morning",
+    "stage": "any",
+    "category": "injury-aware",
+    "text": "Your load has been climbing. Today is a good day to run easy on purpose — easy days are what make the hard days available. Backing off inside a plan is the plan working, not the plan failing.",
+    "source": "Acute:chronic workload ratio (Gabbett)"
   }
 ]

@@ -1,10 +1,15 @@
 import Dexie, { type Table } from 'dexie'
 import type {
+  LoadEntry,
   Message,
   MessageHistory,
+  MessagePerformance,
   NightPlan,
+  ReadinessScore,
   RunLog,
   Settings,
+  SleepEntry,
+  StakeFollowUp,
   StreakState,
 } from './types'
 import seedMessages from '../data/messages.json'
@@ -37,6 +42,13 @@ class RunClubDB extends Dexie {
   messageHistory!: Table<MessageHistory, number>
   nightPlans!: Table<NightPlan, number>
 
+  // Phase 2
+  sleepEntries!: Table<SleepEntry, number>
+  loadEntries!: Table<LoadEntry, number>
+  readinessScores!: Table<ReadinessScore, string>
+  messagePerformance!: Table<MessagePerformance, string>
+  stakeFollowUps!: Table<StakeFollowUp, number>
+
   constructor() {
     super('5am-run-club')
 
@@ -48,6 +60,57 @@ class RunClubDB extends Dexie {
       messageHistory: '++id, messageId, shownDate, slot, [slot+shownDate]',
       nightPlans: '++id, &date, createdAt',
     })
+
+    /**
+     * Phase 2. Purely additive: five new tables, two new indexes on `messages`,
+     * no field removed and no existing row rewritten in a way Phase 1 code would
+     * not recognise. `footballPlayed` is deliberately not indexed — IndexedDB
+     * does not index booleans.
+     */
+    this.version(2)
+      .stores({
+        runLogs: '++id, &date, status',
+        settings: 'id',
+        streak: 'id',
+        messages: 'id, slot, stage, category, origin, pendingReview, [slot+category]',
+        messageHistory: '++id, messageId, shownDate, slot, [slot+shownDate]',
+        nightPlans: '++id, &date, createdAt',
+        sleepEntries: '++id, &date, source',
+        loadEntries: '++id, &date',
+        readinessScores: 'date, level',
+        messagePerformance: 'id, slot, category',
+        stakeFollowUps: '++id, &date',
+      })
+      .upgrade(async (tx) => {
+        // Existing seed messages predate the origin/pendingReview fields. They
+        // must be written explicitly: IndexedDB drops records with an undefined
+        // value from that field's index, which would hide every Phase 1 message
+        // from the pendingReview query.
+        await tx
+          .table<Message>('messages')
+          .toCollection()
+          .modify((m) => {
+            m.origin = m.origin ?? 'seed'
+            m.pendingReview = m.pendingReview ?? 0
+          })
+
+        // Backfill load history from Phase 1 run logs so ACWR has a chronic
+        // window to work with immediately rather than 28 days from now.
+        const logs = await tx.table<RunLog>('runLogs').toArray()
+        const backfill: LoadEntry[] = logs
+          .filter((l) => l.status === 'completed' && l.durationMin && l.effort)
+          .map((l) => ({
+            date: l.date,
+            durationMin: l.durationMin as number,
+            effort: l.effort as number,
+            footballPlayed: false,
+            sessionLoad: (l.durationMin as number) * (l.effort as number),
+          }))
+
+        if (backfill.length > 0) {
+          await tx.table<LoadEntry>('loadEntries').bulkAdd(backfill)
+        }
+      })
   }
 }
 
@@ -55,11 +118,17 @@ export const db = new RunClubDB()
 
 /**
  * Seeds the message bank on first run and adds any messages that appear in
- * messages.json later. Existing rows are overwritten so editing the JSON is
- * enough to change copy — no code change, no migration.
+ * messages.json later. Existing seed rows are overwritten so editing the JSON is
+ * enough to change copy — no code change, no migration. Generated messages have
+ * their own ids and are never touched by this.
  */
 export async function seedMessageBank(): Promise<void> {
-  await db.messages.bulkPut(seedMessages as Message[])
+  const seeds = (seedMessages as Message[]).map((m) => ({
+    ...m,
+    origin: 'seed' as const,
+    pendingReview: 0 as const,
+  }))
+  await db.messages.bulkPut(seeds)
 }
 
 export async function getSettings(): Promise<Settings | undefined> {

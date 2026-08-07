@@ -125,13 +125,16 @@ function DayCell({
   const future = dateKey > today
   const preHistory = dateKey < trackingStartsOn
 
-  const tone = log?.status === 'completed'
-    ? 'bg-signal text-base-900'
-    : log?.status === 'missed'
-      ? 'bg-miss text-ink'
-      : future || preHistory
-        ? 'bg-base-800 text-ink-faint'
-        : 'bg-base-700 text-ink-dim'
+  const tone =
+    log?.status === 'completed'
+      ? 'bg-signal text-base-900'
+      : log?.status === 'rest'
+        ? 'bg-base-500 text-ink'
+        : log?.status === 'missed'
+          ? 'bg-miss text-ink'
+          : future || preHistory
+            ? 'bg-base-800 text-ink-faint'
+            : 'bg-base-700 text-ink-dim'
 
   const day = Number(dateKey.slice(8, 10))
 
@@ -154,6 +157,7 @@ function Legend() {
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[11px] text-ink-faint">
       <LegendItem className="bg-signal" label="Ran" />
+      <LegendItem className="bg-base-500" label="Rest" />
       <LegendItem className="bg-miss" label="Missed" />
       <LegendItem className="bg-base-700" label="No record" />
       <LegendItem className="bg-base-800" label="Not due" />
@@ -179,10 +183,14 @@ function DayDetail({ dateKey, log }: { dateKey: string; log?: RunLog }) {
         <span className="label">{formatDateKey(dateKey)}</span>
         <span
           className={`text-xs font-semibold tracking-wide ${
-            log?.status === 'completed' ? 'text-signal' : 'text-miss'
+            log?.status === 'completed'
+              ? 'text-signal'
+              : log?.status === 'rest'
+                ? 'text-ink-dim'
+                : 'text-miss'
           }`}
         >
-          {log?.status === 'completed' ? 'RAN' : 'MISSED'}
+          {log?.status === 'completed' ? 'RAN' : log?.status === 'rest' ? 'REST' : 'MISSED'}
         </span>
       </div>
 
@@ -205,6 +213,12 @@ function DayDetail({ dateKey, log }: { dateKey: string; log?: RunLog }) {
             <p className="text-[11px] text-ink-faint">Honor check-in — no photo proof.</p>
           )}
         </>
+      ) : log?.status === 'rest' ? (
+        <p className="text-sm leading-relaxed text-ink-dim">
+          {log.restReason
+            ? `Deliberate rest day. ${log.restReason}`
+            : 'Deliberate rest day. The streak carried across it.'}
+        </p>
       ) : (
         <p className="text-sm leading-relaxed text-ink-dim">
           No check-in inside the window. Recorded and left alone.

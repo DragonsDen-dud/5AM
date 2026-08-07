@@ -1,0 +1,83 @@
+{
+  "note": "Structured form of docs/5am-run-club-research.md. This is the complete evidence base generated messages are permitted to draw on. Do not add a finding here without a real source.",
+  "findings": [
+    {
+      "id": "sleep-regularity",
+      "claim": "Sleep/wake regularity, not duration, is the strongest lever. The most-regular sleepers had 20-48% lower all-cause mortality than the least-regular, independent of duration.",
+      "source": "Windred et al., Sleep, 2024 (UK Biobank, n = 60,977)",
+      "implication": "Protect the fixed time above all else."
+    },
+    {
+      "id": "sleep-inertia",
+      "claim": "Sleep inertia peaks near the core temperature minimum, which is close to 5AM. Countermeasures with real evidence: bright light immediately, roughly 100mg caffeine, and not snoozing — snoozing re-triggers drift toward deep sleep.",
+      "source": "Sleep inertia countermeasure literature",
+      "implication": "Morning copy should push light and movement, and make snoozing structurally hard."
+    },
+    {
+      "id": "cortisol-awakening-response",
+      "claim": "The cortisol awakening response is a normal 30-75% surge peaking about 30-45 minutes after waking, present in roughly 77% of people.",
+      "source": "Cortisol awakening response literature",
+      "implication": "Reframe grogginess and cold stiffness as expected physiology, not failure."
+    },
+    {
+      "id": "morning-not-peak",
+      "claim": "Morning is not peak performance time — that is late afternoon. Morning wins decisively on adherence instead: the most consistent exercisers train between 4 and 9 AM.",
+      "source": "Circadian performance rhythms; National Weight Control Registry",
+      "implication": "Sell consistency and identity. Never promise personal-best pace in the morning."
+    },
+    {
+      "id": "automaticity-66-days",
+      "claim": "The 21-day habit rule is a myth. Median time to automaticity is 66 days, range 18-254. Critically, missing one day does not measurably harm habit formation.",
+      "source": "Lally et al., 2010",
+      "implication": "The single most important thing the app teaches, because it prevents the what-the-hell effect."
+    },
+    {
+      "id": "what-the-hell-effect",
+      "claim": "A single lapse can trigger total abandonment of a plan — the what-the-hell effect.",
+      "source": "Herman & Mack, 1975",
+      "implication": "Recovery messaging exists specifically to interrupt this spiral."
+    },
+    {
+      "id": "ego-depletion-failed",
+      "claim": "Ego depletion, the idea of willpower as a depletable fuel, largely failed to replicate in a 36-lab study (d = 0.06).",
+      "source": "Hagger et al., multi-lab replication",
+      "implication": "Never design around trying harder. Design around friction removal and pre-commitment."
+    },
+    {
+      "id": "implementation-intentions",
+      "claim": "If-then implementation intentions have a real and sizable effect on acting on an intention (d = 0.65).",
+      "source": "Gollwitzer & Sheeran meta-analysis",
+      "implication": "The night flow forces the user to write a specific if-then plan, not merely read about one."
+    },
+    {
+      "id": "identity-based-habits",
+      "claim": "Identity-based habits reinforce themselves; people infer their own attitudes from their own behaviour, so each action is evidence about who they are.",
+      "source": "Bem, self-perception theory",
+      "implication": "Frame check-ins as identity evidence, not task completion."
+    },
+    {
+      "id": "fresh-start-effect",
+      "claim": "Temporal landmarks such as a new week, a new month, or a birthday reliably boost re-commitment after a lapse.",
+      "source": "Dai, Milkman & Riis, 2014",
+      "implication": "Use these dates for re-engagement after a miss or a dormant streak."
+    },
+    {
+      "id": "goal-gradient",
+      "claim": "Effort increases as a reward feels closer.",
+      "source": "Kivetz et al., 2006",
+      "implication": "Progress toward day 66 is a stronger framing than an arbitrary points system."
+    },
+    {
+      "id": "acwr",
+      "claim": "Injury risk rises when short-term (about 7-day) training load spikes well above the longer-term (about 28-day) average the body has adapted to. The ratio between them is the signal, not either number alone. A commonly cited elevated-risk range starts around 1.5.",
+      "source": "Gabbett and colleagues, acute:chronic workload ratio literature",
+      "implication": "Surface the ratio only when it becomes actionable, as advice, never as a gate."
+    },
+    {
+      "id": "session-rpe",
+      "claim": "Session-RPE — duration multiplied by a subjective effort rating — is an established load-quantification method used when GPS and heart-rate data are unavailable.",
+      "source": "Applied sports science practice",
+      "implication": "Lets load be tracked with no wearable."
+    }
+  ]
+}
