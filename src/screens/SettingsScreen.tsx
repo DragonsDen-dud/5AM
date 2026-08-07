@@ -88,6 +88,35 @@ export function SettingsScreen({ settings }: Props) {
             className="field tnum"
           />
         </Field>
+
+        {/*
+          Alarm-nudge §1. Off by default and worth leaving off: sleep/wake
+          regularity, not optimisation, is the finding the whole app is built
+          on. This exists for one narrow case — an evening type easing toward an
+          earlier target during initial adaptation.
+        */}
+        <Field
+          label="Chronotype ramp"
+          hint={
+            settings.chronotypeRampEnabled
+              ? `Walks the suggested alarm toward ${settings.targetTime} in ${
+                  settings.chronotypeRampStep ?? 15
+                }-minute steps, at most one step every ${
+                  settings.chronotypeRampIntervalDays ?? 6
+                } days. Stops while a streak is running, and never moves past your target.`
+              : 'Off. Your suggested alarm is your target time, every night. Nothing — not readiness, not training load — moves it. Turn this on only if you are easing toward an earlier target from scratch.'
+          }
+        >
+          <label className="flex cursor-pointer items-center gap-3 rounded-lg border border-base-600 bg-base-900 px-3.5 py-3">
+            <input
+              type="checkbox"
+              checked={settings.chronotypeRampEnabled === true}
+              onChange={(e) => patch({ chronotypeRampEnabled: e.target.checked })}
+              className="size-4 shrink-0 accent-[#FF6B35]"
+            />
+            <span className="text-sm">Ease toward the target time gradually</span>
+          </label>
+        </Field>
       </section>
 
       <section className="card flex flex-col gap-4">

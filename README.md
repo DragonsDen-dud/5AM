@@ -10,6 +10,8 @@ A single-habit accountability PWA for one thing: being out the door and running 
 
 Your phone's Clock app does the waking. This app is the accountability layer that takes over the moment the alarm goes off, which is where a 5AM habit is actually won or lost. A true alarm would mean wrapping this in Capacitor and shipping a native build. That was reviewed for Phase 2 and deliberately not built: Apple has a documented pattern of rejecting the critical-alerts entitlement for alarm-clock use cases, so the payoff is asymmetric — Android gains real ground, iOS barely moves.
 
+What the app does do is decide the time, put it in front of you, and refuse to let you skip acknowledging it — see **The alarm step** below.
+
 Notifications work as follows:
 
 | Platform | Behaviour |
@@ -54,13 +56,38 @@ Native Capacitor shell (Apple does not grant the critical-alerts entitlement for
 
 ---
 
+## The alarm step
+
+The night wind-down now closes on two conditions instead of one: the if-then plan **and** a confirmed alarm time. Same screen, same lock, one more field — there is no second lock screen and no skip.
+
+The suggested time is `Settings.targetTime`, read fresh every evening, and it does not move. Not for readiness, not for ACWR. Regularity is the mechanism the whole app rests on (UK Biobank: 20–48% lower mortality in the most regular sleepers), and an algorithm that renegotiates your wake time nightly would be attacking the thing it is meant to protect. The one exception is an opt-in chronotype ramp for an evening type easing toward an earlier target from scratch — 15-minute steps, at most one every six days, capped at your target and never past it, Stage 1 only, frozen while a streak is running. **It ships off, and it stays off unless you turn it on in Settings.**
+
+The confirmation is honour-system, and that is not a shortcut — no PWA can verify a native alarm exists. On Android Chrome there is a "Set alarm on this phone" link that attempts an `intent:` handoff to the Clock app; whether it resolves depends on the browser and on a compatible clock app, and neither is detectable from web code. So the written instructions sit next to it permanently rather than appearing after a failure that cannot be detected. A dead link degrades into "the instructions were already right there."
+
+### The awkward cases, and where they are covered
+
+Every one of these is a named test, not a hope. The timezone and DST maths lives in `src/lib/alarmTime.ts` as pure functions and is unit-tested under real IANA zones; the rest is driven through the UI.
+
+| Case | Behaviour |
+|---|---|
+| Midnight passes with the screen open | The plan is keyed to the next run window that has not opened yet, not `today + 1`. At 00:30 the run being planned is the one five hours away — the naive form would skip it. The lock now runs from the night message time until the window opens, so the screen does not vanish at midnight mid-flow. |
+| DST, both directions | `zonedTimeToInstant` resolves a wall-clock time against the zone by trying both candidate offsets and round-tripping each. Spring-forward gaps and fall-back duplicate hours are detected and named, not silently mis-resolved. Tested on the actual 2026 transition nights in London, New York and Sydney. |
+| Travel | The zone is read from `Intl.DateTimeFormat().resolvedOptions().timeZone` at render, never cached. `timezoneAtConfirmation` is stored on the row so "it suggested the wrong time" is diagnosable later. |
+| `targetTime` edited mid-day | Read live from the settings row on every render. The evening reflects the afternoon's edit. |
+| Backgrounded mid-flow | The plan is persisted as a draft while it is written, so reopening restores it with only the alarm outstanding. |
+| Reopened twice in one evening | `upsertNightPlan` is keyed by date inside a transaction. One row per day, always — the recovery override and stats both depend on it. |
+| Push denied or silently failing | The lock screen is the source of truth and never consults notification state. Tested with `Notification.permission` forced to `denied` and `PushManager` removed. |
+| Android intent unsupported | Manual instructions are unconditional. No error state, no dead button, no detection attempt. |
+| Ambiguous displayed time | Every time is labelled with the resolved zone abbreviation and IANA name. |
+| Malformed `targetTime` | Falls back to 05:00 rather than throwing. That screen being unreachable would lock you out of the whole app, so nothing on it is allowed to depend on a well-formed setting. |
+
 ## What it does
 
 - **Onboarding** sets the target time, window length, verification method, your "why", and the night message time. It runs once and gates the rest of the app.
 - **Home** is a four-state machine: before the window (countdown), window open (depleting time-bar and the check-in CTA), checked in (quiet confirmation and the log form), and missed. The streak number is the largest element on the screen.
 - **Automaticity Progress** sits under the streak: progress toward Day 66, the median time-to-automaticity from Lally et al. (2010). This deliberately replaces any "cost of a miss" framing.
 - **Check-in** is photo verification by default — camera capture with the timestamp burned into the image, stored locally as a blob. Honor mode is a manual Settings override with a typed-confirmation friction step. Check-in is impossible outside the window; there is no backdating.
-- **Night wind-down** appears each evening at a configurable time and does not dismiss until you write a one-line if-then plan. That requirement is load-bearing, not a nag.
+- **Night wind-down** appears each evening at a configurable time and does not dismiss until you write a one-line if-then plan and confirm tomorrow's alarm. Both requirements are load-bearing, not a nag.
 - **Content Engine** delivers two evidence-based messages a day from a tagged bank, stage-aware and non-repeating, with a recovery override after any miss.
 - **History** is a month heat grid. Past entries are immutable — no edit, no delete.
 - **Stats** covers streaks, lifetime runs, completion rates, and your current habit-formation stage.
@@ -105,6 +132,7 @@ Everything is stored on-device. There is no account, no server, and nothing is u
 │   ├── hooks/
 │   ├── lib/                  db, streak, window, content, reconcile, notifications
 │   │                         readiness, load, sleep, bandit, generate, trends
+│   │                         alarmTime (suggestion, DST/zone maths, ramp)
 │   │   └── verification/     photo.ts, honor.ts
 │   └── screens/              Onboarding, Home, CheckIn, History, Stats, Settings
 ├── sw.ts                     service worker: precache, push, notificationclick
@@ -115,7 +143,9 @@ Everything is stored on-device. There is no account, no server, and nothing is u
 
 Dexie v1 → v2 is additive: five new tables, two new indexes on `messages`, no field removed. The upgrade backfills `origin`/`pendingReview` on existing messages explicitly — IndexedDB drops records with an undefined value from that field's index, which would otherwise hide every Phase 1 message from the review query — and backfills `LoadEntry` rows from Phase 1 runs that already recorded duration and effort, so ACWR has a chronic window immediately rather than 28 days from now.
 
-This is tested against real Phase 1 data, not a clean install: the test drives the actual Phase 1 bundle's onboarding, injects a month of history, then swaps the origin to the Phase 2 bundle and reloads over the same database.
+v2 → v3 (the alarm step) adds no table and no index: every new field on `NightPlan` and `Settings` is unindexed, so the stores declaration is inherited and nothing is rebuilt. The backfill still writes them explicitly rather than leaving them undefined, so "this night had no alarm confirmation" is a recorded fact instead of an absence later code has to guess at. Existing plans are marked `alarmConfirmed: false`, because that is true — they were locked under the old single-condition rule. The one user-visible consequence is gentle and deliberate: a plan already locked for the coming morning asks for the alarm step once, with the plan text pre-filled.
+
+Both migrations are tested against real data, not a clean install. The test drives the actual Phase 1 bundle's onboarding, injects a month of history, swaps the origin to the Phase 2 bundle and reloads over the same database, locks a plan through the Phase 2 night card, then swaps again to the current bundle — the exact sequence a live install has been through — and asserts the streak, the run logs, the plans, the sleep and load history and the settings all survive intact.
 
 ### A note on `reconcile.ts`
 
