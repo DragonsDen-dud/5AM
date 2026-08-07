@@ -23,6 +23,8 @@ This is deliberate, not a limitation. The single strongest finding in `docs/5am-
 
 So: build the ramp mechanism because the spec should be complete, but ship it disabled, and the daily suggestion Den will actually see is just his existing target time, pulled fresh from Settings every night (not cached from a prior night — see §4 error cases).
 
+> **Implementation note — not a spec value.** This section fixes the ramp's step size, interval, cap, and stage/streak conditions but never says where the ramp *starts*. The build derives that from `chronotypeBand` — 60 minutes later than target for a definite evening type, 45 for a moderate evening type, none otherwise — behind an overridable `Settings.chronotypeRampStartOffsetMin` (see `defaultRampStartOffset` in `src/lib/alarmTime.ts`). Reviewed and approved as an interpretation; the numbers were chosen during implementation, not specified here. Blast radius is nil while the ramp ships off and stays capped at `Settings.targetTime`.
+
 ## 2. Where it lives in the flow
 
 Fold into the **existing night wind-down screen** — do not create a second lock screen. Sequence within that one screen:
