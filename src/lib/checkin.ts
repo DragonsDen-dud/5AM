@@ -16,6 +16,11 @@ export interface RunDetails {
   durationMin?: number
   effort?: number
   note?: string
+  routeName?: string
+  feltScore?: number
+  niggle?: boolean
+  niggleNote?: string
+  avgHeartRate?: number
 }
 
 export class WindowClosedError extends Error {
@@ -104,6 +109,11 @@ export async function saveRunDetails(details: RunDetails, now: Date = new Date()
     durationMin: details.durationMin,
     effort: details.effort,
     note: details.note,
+    routeName: details.routeName,
+    feltScore: details.feltScore,
+    niggle: details.niggle,
+    niggleNote: details.niggleNote,
+    avgHeartRate: details.avgHeartRate,
   })
 
   // Duration × effort is the session-RPE load proxy that feeds ACWR (§2.2).

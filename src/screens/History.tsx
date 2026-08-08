@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../lib/db'
 import { formatDateKey, fromDateKey, monthLabel, toDateKey, todayKey } from '../lib/dates'
-import { useBlobUrl } from '../hooks/useBlobUrl'
+import { DayDetail } from '../components/DayDetail'
 import type { RunLog, Settings } from '../lib/types'
 
 const WEEKDAY_INITIALS = ['M', 'T', 'W', 'T', 'F', 'S', 'S']
@@ -171,68 +171,5 @@ function LegendItem({ className, label }: { className: string; label: string }) 
       <span className={`h-2.5 w-2.5 rounded-[3px] ${className}`} />
       {label}
     </span>
-  )
-}
-
-function DayDetail({ dateKey, log }: { dateKey: string; log?: RunLog }) {
-  const photoUrl = useBlobUrl(log?.photoBlob)
-
-  return (
-    <section className="card flex flex-col gap-3">
-      <div className="flex items-baseline justify-between">
-        <span className="label">{formatDateKey(dateKey)}</span>
-        <span
-          className={`text-xs font-semibold tracking-wide ${
-            log?.status === 'completed'
-              ? 'text-signal'
-              : log?.status === 'rest'
-                ? 'text-ink-dim'
-                : 'text-miss'
-          }`}
-        >
-          {log?.status === 'completed' ? 'RAN' : log?.status === 'rest' ? 'REST' : 'MISSED'}
-        </span>
-      </div>
-
-      {log?.status === 'completed' ? (
-        <>
-          {photoUrl && (
-            <img
-              src={photoUrl}
-              alt={`Check-in photo from ${dateKey}`}
-              className="w-full rounded-lg border border-base-700"
-            />
-          )}
-          <dl className="tnum grid grid-cols-3 gap-3 text-sm">
-            <Stat label="Distance" value={log.distanceKm ? `${log.distanceKm} km` : '—'} />
-            <Stat label="Duration" value={log.durationMin ? `${log.durationMin} min` : '—'} />
-            <Stat label="Effort" value={log.effort ? `${log.effort}/5` : '—'} />
-          </dl>
-          {log.note && <p className="text-sm leading-relaxed text-ink-dim">{log.note}</p>}
-          {log.verificationMethod === 'honor' && (
-            <p className="text-[11px] text-ink-faint">Honor check-in — no photo proof.</p>
-          )}
-        </>
-      ) : log?.status === 'rest' ? (
-        <p className="text-sm leading-relaxed text-ink-dim">
-          {log.restReason
-            ? `Deliberate rest day. ${log.restReason}`
-            : 'Deliberate rest day. The streak carried across it.'}
-        </p>
-      ) : (
-        <p className="text-sm leading-relaxed text-ink-dim">
-          No check-in inside the window. Recorded and left alone.
-        </p>
-      )}
-    </section>
-  )
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="label">{label}</dt>
-      <dd className="mt-1">{value}</dd>
-    </div>
   )
 }
