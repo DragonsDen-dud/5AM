@@ -56,6 +56,33 @@ Native Capacitor shell (Apple does not grant the critical-alerts entitlement for
 
 ---
 
+## The main screen
+
+Today is a hero, a state block, and a control panel, in that order — except when the check-in window is actually open, in which case the window jumps above the hero. The streak is motivation; the check-in is the job, and the job does not sit below the fold on a small phone.
+
+**The streak hero** is one object carrying three readings. The number, filled with the app's one gradient. A ring around it showing progress toward day 66 — the median time-to-automaticity from Lally et al. (2010), which is a target you can actually finish, unlike "don't break the chain". And a fourteen-day rail underneath, because a streak of 9 with two rest days in it has a different shape from a clean 9, and the number alone throws that away. Rail cells encode outcome in height as well as colour, so they read without relying on colour vision.
+
+**The Today panel** answers three questions at a glance: what still needs filling in, what is already filled and can be changed, and what is not yours to change.
+
+| Row | Needed | Done | Locked |
+|---|---|---|---|
+| Morning run | Window open — the CTA is above | Summary of distance / duration / effort, tap to edit | Before the window, or permanently after a miss |
+| Last night's sleep | Auto-expanded, two taps | `7h · quality 4/5`, tap to correct | — |
+| Training load | — | Football logged, one tap to undo | Optional by nature, never nags |
+| Tomorrow's plan | After the night message time | Alarm time and the locked if-then | Until the wind-down unlocks |
+
+The header counts only the three that are genuinely tasks — football is a fact about your day, not a chore, so it is never counted against you.
+
+The editable/immutable line is the one the whole trust model rests on. **Whether you ran is decided inside the window and is never editable afterwards.** Everything *around* that fact — how far, how hard, how you slept, whether you played football — stays yours to correct for as long as the day lasts. Past days stay closed either way, and a missed day shows no edit affordance at all.
+
+### Gradients, and where they are allowed
+
+Gradient carries depth; colour still carries meaning. There is one light source, above the top of the screen: `.surface` catches a hairline of it and falls away into the base navy, and `.surface-live` is the ember-tinted variant used only for the surface currently asking for an action. The one decorative flourish is `.aurora`, a pre-dawn glow bleeding in at the top of Today.
+
+Amber stays reserved. It appears as a gradient on exactly two things — the streak number and the primary CTA — which is the same rule Phase 1 set, applied to a richer fill.
+
+Every colour introduced here was checked rather than eyeballed. All three meaning-carrying status chips clear WCAG AA for body text against the composited surface (7.96, 6.55, 5.08); the inactive chip and `ink-faint` sit at AA-large, unchanged from Phase 1; both ends of the CTA gradient clear AA against the button label.
+
 ## The alarm step
 
 The night wind-down now closes on two conditions instead of one: the if-then plan **and** a confirmed alarm time. Same screen, same lock, one more field — there is no second lock screen and no skip.
@@ -84,8 +111,8 @@ Every one of these is a named test, not a hope. The timezone and DST maths lives
 ## What it does
 
 - **Onboarding** sets the target time, window length, verification method, your "why", and the night message time. It runs once and gates the rest of the app.
-- **Home** is a four-state machine: before the window (countdown), window open (depleting time-bar and the check-in CTA), checked in (quiet confirmation and the log form), and missed. The streak number is the largest element on the screen.
-- **Automaticity Progress** sits under the streak: progress toward Day 66, the median time-to-automaticity from Lally et al. (2010). This deliberately replaces any "cost of a miss" framing.
+- **Home** is a four-state machine — before the window (countdown), window open (depleting time-bar and the check-in CTA), checked in, missed — wrapped around a streak hero and a Today control panel. See **The main screen** above.
+- **Automaticity Progress** is the ring around the streak: progress toward Day 66, the median time-to-automaticity from Lally et al. (2010). This deliberately replaces any "cost of a miss" framing.
 - **Check-in** is photo verification by default — camera capture with the timestamp burned into the image, stored locally as a blob. Honor mode is a manual Settings override with a typed-confirmation friction step. Check-in is impossible outside the window; there is no backdating.
 - **Night wind-down** appears each evening at a configurable time and does not dismiss until you write a one-line if-then plan and confirm tomorrow's alarm. Both requirements are load-bearing, not a nag.
 - **Content Engine** delivers two evidence-based messages a day from a tagged bank, stage-aware and non-repeating, with a recovery override after any miss.
@@ -126,7 +153,7 @@ Everything is stored on-device. There is no account, no server, and nothing is u
 ├── public/icons/             icon.svg source + generated PWA icon set
 ├── scripts/build-icons.mjs   renders the icon set from icon.svg
 ├── src/
-│   ├── components/           StreakDisplay, TimeBar, MessageCard, NightCard, …
+│   ├── components/           StreakHero, TodayPanel, TimeBar, NightCard, …
 │   ├── data/messages.json    the content bank — edit this to change copy
 │   ├── data/research-summary.json  evidence base for generated messages
 │   ├── hooks/
