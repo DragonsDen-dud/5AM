@@ -83,6 +83,27 @@ Amber stays reserved. It appears as a gradient on exactly two things — the str
 
 Every colour introduced here was checked rather than eyeballed. All three meaning-carrying status chips clear WCAG AA for body text against the composited surface (7.96, 6.55, 5.08); the inactive chip and `ink-faint` sit at AA-large, unchanged from Phase 1; both ends of the CTA gradient clear AA against the button label.
 
+## Logging a morning
+
+Distance, duration and effort stay on the surface of the check-in form, because duration × effort is the session-RPE load that drives ACWR — those three feed something. Everything else sits behind a **More detail** disclosure, collapsed by default and auto-opened only when it already has content. At 5am a longer form does not get filled more carefully; it stops getting filled at all.
+
+| Optional field | Why it is there |
+|---|---|
+| Route | Free text. Pattern-spotting later, nothing more. |
+| How it felt (1–5) | Deliberately **not** the same axis as effort. Effort is how hard it was; this is whether you would want to do it again. Affective response is the better predictor of whether the habit survives, and the two genuinely diverge — a hard session can feel great. |
+| Average heart rate | Typed by hand if your watch tells you. Nothing syncs; wearable integration stays out of scope. |
+| Niggle | A flag plus an optional line. Onboarding already asks about posterior-chain history, and a twinge recorded on the day is worth far more in March than one remembered in March. Logged, never diagnosed. |
+
+None of it is required, none of it can affect the streak, and a check-in is complete without a single one. Pace is derived from distance and duration rather than asked for.
+
+All of these are unindexed fields on `RunLog`, so they need no schema version and no migration — an older entry simply has none of them, and "not recorded" is a truthful reading of that. The day view renders only the fields that exist; a row of em-dashes says nothing and costs the same space as something.
+
+### Reading a day back
+
+Tap any cell in the 14-day rail on Today and that day's record opens in a sheet: photo, distance, duration, effort, pace, felt, heart rate, route, note, niggle. The same view is what the History calendar shows, from one shared component — a second copy would drift the moment either grew a field.
+
+The sheet is read-only, and says so. History is immutable; the only place a day can be edited is Today, and only for the day it belongs to.
+
 ## The alarm step
 
 The night wind-down now closes on two conditions instead of one: the if-then plan **and** a confirmed alarm time. Same screen, same lock, one more field — there is no second lock screen and no skip.
@@ -113,7 +134,7 @@ Every one of these is a named test, not a hope. The timezone and DST maths lives
 - **Onboarding** sets the target time, window length, verification method, your "why", and the night message time. It runs once and gates the rest of the app.
 - **Home** is a four-state machine — before the window (countdown), window open (depleting time-bar and the check-in CTA), checked in, missed — wrapped around a streak hero and a Today control panel. See **The main screen** above.
 - **Automaticity Progress** is the ring around the streak: progress toward Day 66, the median time-to-automaticity from Lally et al. (2010). This deliberately replaces any "cost of a miss" framing.
-- **Check-in** is photo verification by default — camera capture with the timestamp burned into the image, stored locally as a blob. Honor mode is a manual Settings override with a typed-confirmation friction step. Check-in is impossible outside the window; there is no backdating.
+- **Check-in** is photo verification by default — camera capture with the timestamp burned into the image, stored locally as a blob. Honor mode is a manual Settings override with a typed-confirmation friction step. Check-in is impossible outside the window; there is no backdating. Optional detail hangs off it — see **Logging a morning** below.
 - **Night wind-down** appears each evening at a configurable time and does not dismiss until you write a one-line if-then plan and confirm tomorrow's alarm. Both requirements are load-bearing, not a nag.
 - **Content Engine** delivers two evidence-based messages a day from a tagged bank, stage-aware and non-repeating, with a recovery override after any miss.
 - **History** is a month heat grid. Past entries are immutable — no edit, no delete.

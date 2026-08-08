@@ -35,6 +35,27 @@ export interface RunLog {
   photoBlob?: Blob
   /** Phase 2. Set on a `rest` entry so the calendar can explain itself. */
   restReason?: string
+
+  /*
+   * Optional morning detail. Every one of these is unindexed, so they need no
+   * schema version and no migration — an older row simply has none of them, and
+   * "not recorded" is a truthful reading of that. None of them gates anything or
+   * feeds the streak; the check-in is complete without a single one.
+   */
+
+  /** Where it was. Free text, one line. */
+  routeName?: string
+  /**
+   * 1–5, how the run *felt* — deliberately not the same axis as `effort`. Effort
+   * is RPE and feeds training load; this is affective response, which is the
+   * thing that actually predicts whether someone keeps showing up.
+   */
+  feltScore?: number
+  /** Anything that twinged. Flag first, description optional. */
+  niggle?: boolean
+  niggleNote?: string
+  /** Manually entered bpm. No wearable integration — that stays out of scope. */
+  avgHeartRate?: number
 }
 
 export interface Settings {

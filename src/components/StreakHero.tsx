@@ -1,7 +1,9 @@
+import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../lib/db'
 import { addDays, formatDateKey, todayKey } from '../lib/dates'
 import { automaticityProgress } from '../lib/streak'
+import { DayDetail } from './DayDetail'
 import type { RunLog } from '../lib/types'
 
 const RAIL_DAYS = 14
@@ -41,6 +43,7 @@ export function StreakHero({
   const progress = automaticityProgress(currentStreak)
   const live = currentStreak > 0
   const today = todayKey(now)
+  const [selected, setSelected] = useState<string | null>(null)
 
   const railStart = addDays(today, -(RAIL_DAYS - 1))
   const logs = useLiveQuery(
@@ -49,6 +52,7 @@ export function StreakHero({
   )
 
   const byDate = new Map((logs ?? []).map((l) => [l.date, l]))
+  const selectedDay = selected ? { date: selected, log: byDate.get(selected) } : null
   const days = Array.from({ length: RAIL_DAYS }, (_, i) => {
     const date = addDays(railStart, i)
     return { date, log: byDate.get(date), isTarget: date === targetDate, tracked: date >= trackingStartsOn }
@@ -133,7 +137,11 @@ export function StreakHero({
         {progress.label}
       </p>
 
-      <DayRail days={days} />
+      <DayRail days={days} selected={selected} onSelect={setSelected} />
+
+      {selectedDay && (
+        <DaySheet dateKey={selectedDay.date} log={selectedDay.log} onClose={() => setSelected(null)} />
+      )}
 
       <div className="mt-4 grid w-full grid-cols-3 gap-2">
         <Stat label="Longest" value={longestStreak} unit="d" />
@@ -155,7 +163,15 @@ interface RailDay {
  * Fourteen days at a glance. Height encodes outcome as well as colour, so the
  * shape of a fortnight is legible without relying on colour vision.
  */
-function DayRail({ days }: { days: RailDay[] }) {
+function DayRail({
+  days,
+  selected,
+  onSelect,
+}: {
+  days: RailDay[]
+  selected: string | null
+  onSelect: (date: string | null) => void
+}) {
   return (
     <div className="mt-5 w-full">
       <div className="flex items-end justify-between gap-1">
@@ -188,15 +204,31 @@ function DayRail({ days }: { days: RailDay[] }) {
                       : 'before tracking started'
           }`
 
+          // Only days with a record are worth opening; the rest have nothing
+          // to show and should not offer a tap that does nothing.
+          const openable = Boolean(status)
+
           return (
-            <div key={d.date} className="flex flex-1 flex-col items-center gap-1.5">
-              <span className={`w-full rounded-[3px] ${tone}`} title={title} aria-label={title} />
-            </div>
+            <button
+              key={d.date}
+              type="button"
+              disabled={!openable}
+              onClick={() => onSelect(selected === d.date ? null : d.date)}
+              aria-label={title}
+              className="flex flex-1 flex-col items-center justify-end gap-1.5 pt-3 disabled:cursor-default"
+            >
+              <span className={`w-full rounded-[3px] ${tone}`} />
+              <span
+                className={`h-0.5 w-full rounded-full ${
+                  selected === d.date ? 'bg-ember' : 'bg-transparent'
+                }`}
+              />
+            </button>
           )
         })}
       </div>
-      <p className="mt-2 text-center text-[10px] tracking-[0.14em] uppercase text-ink-faint">
-        Last {RAIL_DAYS} days
+      <p className="mt-1.5 text-center text-[10px] tracking-[0.14em] uppercase text-ink-faint">
+        Last {RAIL_DAYS} days — tap one
       </p>
     </div>
   )
@@ -210,6 +242,59 @@ function Stat({ label, value, unit }: { label: string; value: number; unit: stri
         <span className="tnum text-lg font-semibold">{value}</span>
         <span className="ml-1 text-[11px] text-ink-dim">{unit}</span>
       </p>
+    </div>
+  )
+}
+
+/**
+ * A day pulled up from the rail. Escape and a tap outside both close it, and
+ * the page behind is locked while it is open so the sheet is not scrolled off
+ * by accident on a phone.
+ */
+function DaySheet({
+  dateKey,
+  log,
+  onClose,
+}: {
+  dateKey: string
+  log: RunLog | undefined
+  onClose: () => void
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKey)
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = previous
+    }
+  }, [onClose])
+
+  return (
+    <div className="fixed inset-0 z-30 flex flex-col justify-end">
+      <button
+        type="button"
+        aria-label="Close day detail"
+        onClick={onClose}
+        className="absolute inset-0 bg-base-900/80 backdrop-blur-sm"
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Record for ${formatDateKey(dateKey)}`}
+        className="animate-rise relative mx-auto max-h-[80dvh] w-full max-w-md overflow-y-auto px-5 pb-5 safe-b"
+      >
+        <DayDetail dateKey={dateKey} log={log} />
+        <button type="button" onClick={onClose} className="btn-secondary mt-3 w-full">
+          Close
+        </button>
+        <p className="mt-3 text-center text-[11px] leading-relaxed text-ink-faint">
+          Past days are read-only. Today&rsquo;s detail is editable from the panel below.
+        </p>
+      </div>
     </div>
   )
 }
