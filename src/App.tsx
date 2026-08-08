@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, getSettings, saveSettings, seedMessageBank } from './lib/db'
-import { addDays, parseTime, todayKey } from './lib/dates'
+import { parseTime, todayKey } from './lib/dates'
+import { nextRunDate, safeTargetTime } from './lib/alarmTime'
+import { windowForDate } from './lib/window'
 import { reconcileMissedDays } from './lib/reconcile'
 import { generationIsDue, runWeeklyGeneration } from './lib/generate'
 import { startLocalReminderScheduler } from './lib/notifications'
@@ -64,16 +66,41 @@ function Shell({ settings }: { settings: Settings }) {
     void runWeeklyGeneration(settings).catch(() => undefined)
   }, [settings, today])
 
-  // The night card plans for tomorrow, so it is keyed to tomorrow's run date.
-  const tomorrow = addDays(today, 1)
+  /*
+   * The night card is keyed to the next run that has not started yet, not to
+   * `today + 1` (alarm-nudge §4.1). Those differ after midnight: at 00:30 the
+   * run being planned is five hours away, today — the naive form would quietly
+   * skip it and plan for the morning after.
+   */
+  const runDate = nextRunDate(settings, now)
   const tonightPlan = useLiveQuery(
-    async () => (await db.nightPlans.where('date').equals(tomorrow).first()) ?? null,
-    [tomorrow],
+    async () => (await db.nightPlans.where('date').equals(runDate).first()) ?? null,
+    [runDate],
   )
 
+  /*
+   * The lock runs from the night message time until the check-in window opens,
+   * rather than ending at midnight — otherwise the screen vanishes mid-flow at
+   * 00:00 and the plan it was collecting is for a run that has not happened yet.
+   */
   const minutesNow = now.getHours() * 60 + now.getMinutes()
+  const windowOpensAt = windowForDate(
+    { ...settings, targetTime: safeTargetTime(settings.targetTime) },
+    today,
+  ).opensAt
+  const nightWindowOpen =
+    minutesNow >= parseTime(settings.nightMessageTime) || now < windowOpensAt
+
+  /*
+   * Both halves of the gate live here: an unlocked evening is one where the
+   * plan is written and the alarm acknowledged (§2). `undefined` is the
+   * still-loading state and must not flash the card.
+   */
   const nightDue =
-    minutesNow >= parseTime(settings.nightMessageTime) && tonightPlan === null && !checkInOpen
+    nightWindowOpen &&
+    tonightPlan !== undefined &&
+    tonightPlan?.alarmConfirmed !== true &&
+    !checkInOpen
 
   /*
    * Existing users predate the chronotype step, so they get an optional prompt

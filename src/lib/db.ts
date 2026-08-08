@@ -14,6 +14,7 @@ import type {
 } from './types'
 import seedMessages from '../data/messages.json'
 import { todayKey } from './dates'
+import { DEFAULT_RAMP_INTERVAL_DAYS, DEFAULT_RAMP_STEP_MINUTES } from './alarmTime'
 
 export const DEFAULT_SETTINGS: Omit<Settings, 'onboardedAt' | 'trackingStartsOn'> = {
   id: 'settings',
@@ -24,6 +25,11 @@ export const DEFAULT_SETTINGS: Omit<Settings, 'onboardedAt' | 'trackingStartsOn'
   notificationsEnabled: false,
   nightMessageTime: '21:00',
   onboardingComplete: false,
+
+  // Alarm nudge §1: built, shipped off. A fixed target is the point.
+  chronotypeRampEnabled: false,
+  chronotypeRampStep: DEFAULT_RAMP_STEP_MINUTES,
+  chronotypeRampIntervalDays: DEFAULT_RAMP_INTERVAL_DAYS,
 }
 
 export const EMPTY_STREAK: StreakState = {
@@ -111,6 +117,41 @@ class RunClubDB extends Dexie {
           await tx.table<LoadEntry>('loadEntries').bulkAdd(backfill)
         }
       })
+
+    /**
+     * Alarm nudge. Additive and index-free: every new field on `NightPlan` and
+     * `Settings` is unindexed, so the stores declaration is inherited from v2
+     * unchanged and no table is rebuilt.
+     *
+     * The backfill writes the new fields explicitly rather than leaving them
+     * undefined, so "this night had no alarm confirmation" is a recorded fact
+     * instead of an absence that later code has to guess at. Existing plans are
+     * marked `alarmConfirmed: false` because that is the truth — they were
+     * locked under the old single-condition rule. The only user-visible
+     * consequence is that a plan already locked for the coming morning asks for
+     * the alarm step once, with the plan text pre-filled.
+     */
+    this.version(3).upgrade(async (tx) => {
+      await tx
+        .table<NightPlan>('nightPlans')
+        .toCollection()
+        .modify((p) => {
+          p.suggestedAlarmTime = p.suggestedAlarmTime ?? ''
+          p.confirmedAlarmTime = p.confirmedAlarmTime ?? ''
+          p.alarmConfirmed = p.alarmConfirmed ?? false
+          p.timezoneAtConfirmation = p.timezoneAtConfirmation ?? ''
+        })
+
+      await tx
+        .table<Settings>('settings')
+        .toCollection()
+        .modify((s) => {
+          s.chronotypeRampEnabled = s.chronotypeRampEnabled ?? false
+          s.chronotypeRampStep = s.chronotypeRampStep ?? DEFAULT_RAMP_STEP_MINUTES
+          s.chronotypeRampIntervalDays =
+            s.chronotypeRampIntervalDays ?? DEFAULT_RAMP_INTERVAL_DAYS
+        })
+    })
   }
 }
 
@@ -147,6 +188,43 @@ export async function saveSettings(patch: Partial<Settings>): Promise<void> {
     id: 'settings',
   }
   await db.settings.put(next)
+}
+
+/**
+ * Alarm nudge §4.6. One `NightPlan` row per calendar day, always.
+ *
+ * Phase 1 wrote with `nightPlans.put(row)` and no id, which auto-increments a
+ * *new* key — a second write for the same date violated the unique `&date`
+ * index. It never surfaced because the card only ever wrote once. Now that the
+ * plan is saved as a draft and the alarm confirmed separately, the same evening
+ * writes several times, and downstream recovery-override and stats logic both
+ * assume one row per day. The whole read-modify-write runs in one transaction
+ * so two tabs cannot both decide the row is missing.
+ */
+export async function upsertNightPlan(
+  date: string,
+  patch: Partial<Omit<NightPlan, 'id' | 'date'>>,
+): Promise<NightPlan> {
+  return db.transaction('rw', db.nightPlans, async () => {
+    const existing = await db.nightPlans.where('date').equals(date).first()
+    const next: NightPlan = {
+      ...(existing ?? {
+        date,
+        planText: '',
+        createdAt: new Date().toISOString(),
+        messageId: '',
+        suggestedAlarmTime: '',
+        confirmedAlarmTime: '',
+        alarmConfirmed: false,
+        timezoneAtConfirmation: '',
+      }),
+      ...patch,
+      date,
+    }
+    if (existing?.id !== undefined) next.id = existing.id
+    const id = await db.nightPlans.put(next)
+    return { ...next, id }
+  })
 }
 
 export async function getStreak(): Promise<StreakState> {

@@ -92,6 +92,26 @@ export interface Settings {
   lastGenerationDate?: string
   /** YYYY-MM-DD of the last dormancy re-engagement card shown. */
   lastFreshStartDate?: string
+
+  /* ── Alarm nudge — chronotype ramp (alarm-nudge spec §1) ──────────────── */
+
+  /**
+   * Off by default and meant to stay that way for anyone already holding a
+   * fixed target. Regularity is the mechanism; a nightly-moving wake time
+   * undermines it. Only a genuine evening type easing toward an earlier target
+   * during initial adaptation should turn this on.
+   */
+  chronotypeRampEnabled?: boolean
+  /** Minutes per adjustment. Default 15. */
+  chronotypeRampStep?: number
+  /** Minimum days between adjustments. Default 6. */
+  chronotypeRampIntervalDays?: number
+  /**
+   * How many minutes later than `targetTime` the ramp starts. Not specified by
+   * the spec — derived from `chronotypeBand` when absent (see
+   * `defaultRampStartOffset`), overridable here.
+   */
+  chronotypeRampStartOffsetMin?: number
 }
 
 export interface StreakState {
@@ -137,6 +157,24 @@ export interface NightPlan {
   /** ISO timestamp of when it was written. */
   createdAt: string
   messageId: string
+
+  /* ── Alarm nudge ──────────────────────────────────────────────────────── */
+
+  /** "HH:MM". Computed fresh each evening from Settings.targetTime (or the ramp). */
+  suggestedAlarmTime?: string
+  /** "HH:MM". What was actually set — may differ from the suggestion. */
+  confirmedAlarmTime?: string
+  /**
+   * The second half of the night lock. The plan alone no longer unlocks;
+   * the plan and this together do.
+   */
+  alarmConfirmed?: boolean
+  /**
+   * IANA zone reported by the device at confirmation, e.g. "Europe/London".
+   * Stored purely so "the app suggested the wrong time" can be diagnosed
+   * against what the device actually claimed that night (§4.3).
+   */
+  timezoneAtConfirmation?: string
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
