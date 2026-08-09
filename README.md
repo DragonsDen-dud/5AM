@@ -62,16 +62,22 @@ Today is a hero, a state block, and a control panel, in that order — except wh
 
 **The streak hero** is one object carrying three readings. The number, filled with the app's one gradient. A ring around it showing progress toward day 66 — the median time-to-automaticity from Lally et al. (2010), which is a target you can actually finish, unlike "don't break the chain". And a fourteen-day rail underneath, because a streak of 9 with two rest days in it has a different shape from a clean 9, and the number alone throws that away. Rail cells encode outcome in height as well as colour, so they read without relying on colour vision.
 
-**The Today panel** answers three questions at a glance: what still needs filling in, what is already filled and can be changed, and what is not yours to change.
+**The Today panel** answers three questions at a glance: what still needs filling in, what is already filled and can be changed, and what is not yours to change. Each row leads with an icon tinted by its own status, so the state is legible before a single word is read.
 
 | Row | Needed | Done | Locked |
 |---|---|---|---|
 | Morning run | Window open — the CTA is above | Summary of distance / duration / effort, tap to edit | Before the window, or permanently after a miss |
 | Last night's sleep | Auto-expanded, two taps | `7h · quality 4/5`, tap to correct | — |
 | Training load | — | Football logged, one tap to undo | Optional by nature, never nags |
-| Tomorrow's plan | After the night message time | Alarm time and the locked if-then | Until the wind-down unlocks |
+| Tomorrow's plan | After the night message time | Alarm time and the locked if-then | Never — see below |
 
 The header counts only the three that are genuinely tasks — football is a fact about your day, not a chore, so it is never counted against you.
+
+### A skipped wind-down is not a lost one
+
+The wind-down is a lock during its window and has no exit — that requirement is load-bearing and unchanged. But it is no longer *only* reachable then. Tapping **Tomorrow's plan** opens the same screen at any hour, so an evening that got skipped can still be caught up the next morning rather than leaving a run with no plan and no alarm behind it.
+
+Opened by hand it reads **Catching up**, names the morning it is writing for, and closes freely without saving anything. Opened because it is due, it is the lock: no close button, both conditions or nothing. The row's chip says which of the two you are getting before you tap it.
 
 The editable/immutable line is the one the whole trust model rests on. **Whether you ran is decided inside the window and is never editable afterwards.** Everything *around* that fact — how far, how hard, how you slept, whether you played football — stays yours to correct for as long as the day lasts. Past days stay closed either way, and a missed day shows no edit affordance at all.
 
@@ -79,7 +85,9 @@ The editable/immutable line is the one the whole trust model rests on. **Whether
 
 Gradient carries depth; colour still carries meaning. There is one light source, above the top of the screen: `.surface` catches a hairline of it and falls away into the base navy, and `.surface-live` is the ember-tinted variant used only for the surface currently asking for an action. The one decorative flourish is `.aurora`, a pre-dawn glow bleeding in at the top of Today.
 
-Amber stays reserved. It appears as a gradient on exactly two things — the streak number and the primary CTA — which is the same rule Phase 1 set, applied to a richer fill.
+Amber stays reserved. It appears as a gradient on exactly two things — the streak number and the primary CTA — which is the same rule Phase 1 set, applied to a richer fill. The progress ring carries a lit head so the arc reads as a point of light travelling round it rather than a cut end.
+
+Elevation is one soft, wide, very dark shadow. On a near-black ground a tight shadow reads as a border and a light one reads as fog. Everything tappable acknowledges the tap at 1.5% scale — felt, not seen.
 
 Every colour introduced here was checked rather than eyeballed. All three meaning-carrying status chips clear WCAG AA for body text against the composited surface (7.96, 6.55, 5.08); the inactive chip and `ink-faint` sit at AA-large, unchanged from Phase 1; both ends of the CTA gradient clear AA against the button label.
 

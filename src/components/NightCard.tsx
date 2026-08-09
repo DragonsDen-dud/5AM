@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, getStreak, upsertNightPlan } from '../lib/db'
 import { getDailyMessage } from '../lib/content'
-import { formatDuration } from '../lib/dates'
+import { formatDateKey, formatDuration } from '../lib/dates'
 import { currentStage } from '../lib/stage'
 import {
   androidAlarmIntentUrl,
@@ -28,6 +28,11 @@ const DRAFT_SAVE_DELAY_MS = 700
 interface Props {
   settings: Settings
   onDone: () => void
+  /**
+   * Present only when this was opened by hand rather than because it is due.
+   * Its absence is what makes the screen a lock.
+   */
+  onDismiss?: () => void
 }
 
 /**
@@ -44,7 +49,7 @@ interface Props {
  * This screen is the source of truth and blocks on its own the next time the
  * app is opened that evening (§4.7).
  */
-export function NightCard({ settings, onDone }: Props) {
+export function NightCard({ settings, onDone, onDismiss }: Props) {
   const uid = useId()
   const now = useNow(30_000)
 
@@ -98,6 +103,7 @@ export function NightCard({ settings, onDone }: Props) {
    * are authoritative, so a save round-trip cannot overwrite what is being
    * typed. A row that does not exist leaves the current text alone.
    */
+  const hydrated = existing !== undefined
   const hydratedFor = useRef<string | null>(null)
   const touched = useRef(false)
   useEffect(() => {
@@ -174,13 +180,46 @@ export function NightCard({ settings, onDone }: Props) {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-base-900">
       <div className="mx-auto flex min-h-full w-full max-w-md flex-col gap-6 px-5 safe-t safe-b">
-        <header className="pt-4">
-          <span className="label">Wind-down</span>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">Set tomorrow now.</h1>
+        <header className="flex items-start justify-between pt-4">
+          <div>
+            <span className="label">Wind-down</span>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight">
+              {onDismiss ? 'Catching up.' : 'Set tomorrow now.'}
+            </h1>
+            {onDismiss && (
+              <p className="mt-2 text-sm leading-relaxed text-ink-dim">
+                Late is better than not at all. This writes the plan and the alarm for{' '}
+                {formatRunDate(runDate)}.
+              </p>
+            )}
+          </div>
+          {onDismiss && (
+            <button
+              type="button"
+              onClick={onDismiss}
+              aria-label="Close"
+              className="btn-ghost pressable -mr-2 shrink-0 px-3 py-2 text-lg"
+            >
+              &times;
+            </button>
+          )}
         </header>
 
         {message && <MessageCard message={message} />}
 
+        {/*
+          Nothing interactive until the saved row has resolved. A form that
+          renders empty and fills in a beat later is not just a flash: it is a
+          box you can start typing into before the draft arrives, and the
+          restore then has to choose between your keystrokes and the disk. Not
+          offering it for those two frames removes the choice entirely.
+        */}
+        {!hydrated ? (
+          <div className="flex flex-1 items-center justify-center py-20">
+            <p className="text-sm text-ink-faint">Loading tonight&rsquo;s plan…</p>
+          </div>
+        ) : (
+        <>
         <div>
           <label htmlFor={`${uid}-if-then`} className="label">
             Tomorrow&rsquo;s if-then plan
@@ -286,11 +325,18 @@ export function NightCard({ settings, onDone }: Props) {
         </section>
 
         <div className="mt-auto pb-4">
-          <button type="button" onClick={submit} disabled={!valid || saving} className="btn-primary w-full">
+          <button
+            type="button"
+            onClick={submit}
+            disabled={!valid || saving}
+            className="btn-primary pressable w-full"
+          >
             {saving ? 'Saving' : 'Lock the plan'}
           </button>
           <p className="mt-3 text-center text-[11px] text-ink-faint">{gateHint(planValid, confirmed)}</p>
         </div>
+        </>
+        )}
       </div>
     </div>
   )
@@ -319,4 +365,9 @@ function gateHint(planValid: boolean, confirmed: boolean): string {
   if (!planValid && !confirmed) return 'Write the plan and set the alarm to continue. There is no skip.'
   if (!planValid) return 'Write the plan to continue. There is no skip.'
   return 'Set the alarm and confirm it to continue. There is no skip.'
+}
+
+/** "tomorrow morning" / "Monday morning" — friendlier than a bare date key. */
+function formatRunDate(dateKey: string): string {
+  return `${formatDateKey(dateKey)} morning`
 }

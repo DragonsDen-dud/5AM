@@ -7,6 +7,7 @@ import { FOOTBALL_MINUTES, toggleFootball } from '../lib/load'
 import { windowLabel } from '../lib/window'
 import { SleepLog } from './SleepLog'
 import { RunDetailsForm } from './RunDetailsForm'
+import { IconAlarm, IconChevron, IconLoad, IconMoon, IconSunrise } from './icons'
 import type { RunLog, Settings } from '../lib/types'
 
 export type TaskStatus = 'need' | 'done' | 'wait' | 'miss'
@@ -24,6 +25,8 @@ interface Props {
   todayLog: RunLog | undefined
   phase: 'before' | 'open' | 'closed'
   opensAt: Date
+  /** Opens the wind-down on demand, whether or not it is currently due. */
+  onOpenWindDown: () => void
 }
 
 /**
@@ -43,6 +46,7 @@ export function TodayPanel({
   todayLog,
   phase,
   opensAt,
+  onOpenWindDown,
 }: Props) {
   const today = todayKey(now)
   const [override, setOverride] = useState<Record<string, boolean>>({})
@@ -97,20 +101,26 @@ export function TodayPanel({
   const football = load?.footballPlayed === true
   const loadStatus: TaskStatus = football ? 'done' : 'wait'
   const loadSummary = football
-    ? `Football — ~${FOOTBALL_MINUTES} min at hard effort. Tap to undo.`
+    ? `Football · ~${FOOTBALL_MINUTES} min hard. Tap to undo.`
     : 'Tap if you played football today.'
 
   /* ── Tomorrow's plan + alarm ───────────────────────────────────────────── */
   const nightOpen =
     now.getHours() * 60 + now.getMinutes() >= parseTime(settings.nightMessageTime) ||
     now < opensAt
+  /*
+   * The wind-down is a lock during its window, but it is not *only* reachable
+   * then. Skipping an evening used to mean the morning simply had no plan and no
+   * alarm behind it, with no way to put that right — so this row opens the same
+   * screen on demand at any hour, and the row says which of the two it is.
+   */
   const planDone = plan?.alarmConfirmed === true
   const planStatus: TaskStatus = planDone ? 'done' : nightOpen ? 'need' : 'wait'
   const planSummary = planDone
     ? `Alarm ${formatAlarmDisplay(plan?.confirmedAlarmTime ?? settings.targetTime)} · plan locked`
     : nightOpen
       ? 'Write the plan and set the alarm'
-      : `Unlocks at ${settings.nightMessageTime}`
+      : `Opens at ${settings.nightMessageTime} — or do it now`
 
   const tasks: TaskStatus[] = [runStatus, sleepStatus, planStatus]
   const done = tasks.filter((t) => t === 'done').length
@@ -165,6 +175,7 @@ export function TodayPanel({
         */}
         <TaskRow
           id="run"
+          icon={<IconSunrise />}
           title="Morning run"
           status={runStatus}
           summary={runSummary}
@@ -184,6 +195,7 @@ export function TodayPanel({
 
         <TaskRow
           id="sleep"
+          icon={<IconMoon />}
           title="Last night’s sleep"
           status={sleepStatus}
           summary={sleepSummary}
@@ -200,6 +212,7 @@ export function TodayPanel({
         */}
         <TaskRow
           id="load"
+          icon={<IconLoad />}
           title="Training load"
           status={loadStatus}
           chipLabel={football ? 'Done' : 'Optional'}
@@ -212,11 +225,14 @@ export function TodayPanel({
 
         <TaskRow
           id="plan"
+          icon={<IconAlarm />}
           title="Tomorrow’s plan"
           status={planStatus}
+          chipLabel={planDone ? 'Done' : nightOpen ? 'Needed' : 'Catch up'}
           summary={planSummary}
           open={isOpen('plan', false)}
-          onToggle={() => toggle('plan', false)}
+          onToggle={() => (planDone ? toggle('plan', false) : onOpenWindDown())}
+          variant={planDone ? 'expand' : 'action'}
           expandable={planDone}
         >
           {plan?.planText && (
@@ -225,16 +241,18 @@ export function TodayPanel({
               <p className="mt-1.5 text-sm leading-relaxed text-ink-dim">{plan.planText}</p>
             </div>
           )}
-          <p className="mt-3 text-[11px] leading-relaxed text-ink-faint">
-            Written last night and fixed for the morning. The wind-down screen is where it changes.
-          </p>
+          <button type="button" onClick={onOpenWindDown} className="btn-secondary pressable mt-3 w-full">
+            Change the plan
+          </button>
         </TaskRow>
+
       </div>
     </section>
   )
 }
 
 function TaskRow({
+  icon,
   title,
   status,
   chipLabel,
@@ -247,6 +265,7 @@ function TaskRow({
   children,
 }: {
   id: string
+  icon: ReactNode
   title: string
   status: TaskStatus
   /** Overrides the status's default chip wording. */
@@ -255,30 +274,26 @@ function TaskRow({
   open: boolean
   onToggle: () => void
   expandable?: boolean
-  /** `toggle` rows act on the tap itself rather than revealing a body. */
-  variant?: 'expand' | 'toggle'
+  /**
+   * `toggle` acts on the tap itself; `action` hands off somewhere else. Only
+   * `expand` reveals a body in place.
+   */
+  variant?: 'expand' | 'toggle' | 'action'
   checked?: boolean
   children?: ReactNode
 }) {
-  const interactive = variant === 'toggle' || expandable
-  const dot =
-    status === 'done'
-      ? 'bg-signal'
-      : status === 'need'
-        ? 'bg-ember shadow-[0_0_0_3px_rgba(255,107,53,0.18)]'
-        : status === 'miss'
-          ? 'bg-miss'
-          : 'bg-base-500'
-
+  const interactive = variant !== 'expand' || expandable
   const body = (
-    <div className="flex items-center gap-3 px-5 py-4 text-left">
-      <span className={`h-2 w-2 shrink-0 rounded-full ${dot}`} aria-hidden="true" />
+    <div className="flex items-center gap-3.5 px-5 py-4 text-left">
+      <span className={`icon-chip icon-${status}`}>{icon}</span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-semibold">{title}</span>
-        <span className="mt-0.5 block truncate text-[11px] text-ink-faint">{summary}</span>
+        <span className="mt-0.5 block text-[11px] leading-snug text-ink-faint">{summary}</span>
       </span>
       <span className={`chip chip-${status}`}>{chipLabel ?? CHIP_LABEL[status]}</span>
-      {variant === 'toggle' ? (
+      {variant === 'action' ? (
+        <IconChevron className="h-4 w-4 shrink-0 -rotate-90 text-ink-faint" />
+      ) : variant === 'toggle' ? (
         <span
           className={`h-4 w-4 shrink-0 rounded-full border ${
             checked ? 'border-signal bg-signal' : 'border-base-500'
@@ -317,7 +332,7 @@ function TaskRow({
           {...(variant === 'toggle'
             ? { 'aria-pressed': checked }
             : { 'aria-expanded': open })}
-          className="w-full active:bg-base-800/50"
+          className="pressable w-full active:bg-base-800/40"
         >
           {body}
         </button>

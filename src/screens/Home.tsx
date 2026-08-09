@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, saveSettings } from '../lib/db'
-import { formatClock, formatDateKey, formatDuration, todayKey } from '../lib/dates'
+import {
+  formatDateKey,
+  formatDayMonth,
+  formatDuration,
+  formatWeekday,
+  todayKey,
+} from '../lib/dates'
 import { detectFreshStart, type FreshStartTrigger } from '../lib/freshStart'
 import { getReadiness } from '../lib/readiness'
 import { useNow } from '../hooks/useNow'
@@ -21,9 +27,10 @@ import type { ReadinessScore, Settings } from '../lib/types'
 interface Props {
   settings: Settings
   onOpenCheckIn: () => void
+  onOpenWindDown: () => void
 }
 
-export function Home({ settings, onOpenCheckIn }: Props) {
+export function Home({ settings, onOpenCheckIn, onOpenWindDown }: Props) {
   const now = useNow(1000)
   const today = todayKey(now)
 
@@ -107,12 +114,26 @@ export function Home({ settings, onOpenCheckIn }: Props) {
           atmosphere. Decorative, behind everything, never interactive. */}
       <div className="aurora" aria-hidden="true" />
 
-      <header className="relative flex items-baseline justify-between">
+      <header className="relative flex items-end justify-between pt-1">
         <div>
-          <h1 className="text-sm font-semibold tracking-tight">{formatDateKey(today)}</h1>
-          <p className="tnum mt-0.5 text-[11px] text-ink-faint">Window {windowLabel(settings)}</p>
+          <p className="label">{formatWeekday(today)}</p>
+          <h1 className="mt-0.5 text-2xl font-semibold tracking-tight">{formatDayMonth(today)}</h1>
         </div>
-        <span className="tnum text-sm text-ink-dim">{formatClock(now)}</span>
+        <div className="text-right">
+          {/* Seconds are set smaller than minutes: the clock reads at a glance
+              and still shows the app is live. */}
+          <p className="tnum leading-none">
+            <span className="text-xl font-semibold">
+              {String(now.getHours()).padStart(2, '0')}:{String(now.getMinutes()).padStart(2, '0')}
+            </span>
+            <span className="text-xs text-ink-faint">
+              :{String(now.getSeconds()).padStart(2, '0')}
+            </span>
+          </p>
+          <p className="tnum mt-1.5 text-[10px] tracking-wide text-ink-faint">
+            Window {windowLabel(settings)}
+          </p>
+        </div>
       </header>
 
       {urgent && stateBlock}
@@ -144,6 +165,7 @@ export function Home({ settings, onOpenCheckIn }: Props) {
         todayLog={todayLog}
         phase={phase}
         opensAt={window.opensAt}
+        onOpenWindDown={onOpenWindDown}
       />
     </div>
   )
@@ -233,7 +255,11 @@ function OpenWindow({
   return (
     <section className="surface surface-live flex flex-col gap-5 p-5">
       <TimeBar fraction={fraction} msRemaining={msRemaining} />
-      <button type="button" onClick={onOpenCheckIn} className="btn-primary w-full py-5 text-base">
+      <button
+        type="button"
+        onClick={onOpenCheckIn}
+        className="btn-primary pressable w-full py-5 text-base tracking-[0.08em]"
+      >
         CHECK IN
       </button>
       {plan && <PlanRow plan={plan} />}

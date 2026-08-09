@@ -72,6 +72,17 @@ export function formatDateKey(key: string): string {
   return `${WEEKDAYS[d.getDay()].slice(0, 3)} ${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)} ${d.getFullYear()}`
 }
 
+/** "Saturday" — the header's overline. */
+export function formatWeekday(key: string): string {
+  return WEEKDAYS[fromDateKey(key).getDay()]
+}
+
+/** "8 August" — the header's headline. The year is never in doubt on a today screen. */
+export function formatDayMonth(key: string): string {
+  const d = fromDateKey(key)
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}`
+}
+
 export function monthLabel(year: number, monthIndex: number): string {
   return `${MONTHS[monthIndex]} ${year}`
 }

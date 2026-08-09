@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../lib/db'
-import { addDays, formatDateKey, todayKey } from '../lib/dates'
+import { addDays, formatDateKey, fromDateKey, todayKey } from '../lib/dates'
 import { automaticityProgress } from '../lib/streak'
 import { DayDetail } from './DayDetail'
 import type { RunLog } from '../lib/types'
@@ -50,6 +50,13 @@ export function StreakHero({
     async () => db.runLogs.where('date').between(railStart, today, true, true).toArray(),
     [railStart, today],
   )
+
+  // Where the arc currently ends, in SVG coordinates. Twelve o'clock is 0.
+  const tipAngle = (progress.fraction * 360 - 90) * (Math.PI / 180)
+  const tip = {
+    x: RING_SIZE / 2 + RING_RADIUS * Math.cos(tipAngle),
+    y: RING_SIZE / 2 + RING_RADIUS * Math.sin(tipAngle),
+  }
 
   const byDate = new Map((logs ?? []).map((l) => [l.date, l]))
   const selectedDay = selected ? { date: selected, log: byDate.get(selected) } : null
@@ -112,6 +119,15 @@ export function StreakHero({
               className="transition-[stroke-dashoffset] duration-1000 ease-out"
             />
           )}
+
+          {/* The head of the arc. A soft halo plus a bright core reads as a
+              point of light travelling round the ring rather than a cut end. */}
+          {progress.fraction > 0 && progress.fraction < 1 && (
+            <>
+              <circle cx={tip.x} cy={tip.y} r="9" fill="var(--color-ember)" opacity="0.18" />
+              <circle cx={tip.x} cy={tip.y} r="3.4" fill="var(--color-ember-lift)" />
+            </>
+          )}
         </svg>
 
         <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -143,7 +159,7 @@ export function StreakHero({
         <DaySheet dateKey={selectedDay.date} log={selectedDay.log} onClose={() => setSelected(null)} />
       )}
 
-      <div className="mt-4 grid w-full grid-cols-3 gap-2">
+      <div className="mt-5 grid w-full grid-cols-3 gap-2.5">
         <Stat label="Longest" value={longestStreak} unit="d" />
         <Stat label="Lifetime" value={totalRuns} unit="runs" />
         <Stat label="To day 66" value={Math.max(progress.target - progress.day, 0)} unit="left" />
@@ -172,6 +188,8 @@ function DayRail({
   selected: string | null
   onSelect: (date: string | null) => void
 }) {
+  const initial = (dateKey: string) => 'SMTWTFS'[fromDateKey(dateKey).getDay()]
+
   return (
     <div className="mt-5 w-full">
       <div className="flex items-end justify-between gap-1">
@@ -215,19 +233,26 @@ function DayRail({
               disabled={!openable}
               onClick={() => onSelect(selected === d.date ? null : d.date)}
               aria-label={title}
-              className="flex flex-1 flex-col items-center justify-end gap-1.5 pt-3 disabled:cursor-default"
+              className="pressable flex flex-1 flex-col items-center justify-end gap-1.5 pt-4 disabled:cursor-default"
             >
               <span className={`w-full rounded-[3px] ${tone}`} />
               <span
-                className={`h-0.5 w-full rounded-full ${
+                className={`h-0.5 w-full rounded-full transition-colors ${
                   selected === d.date ? 'bg-ember' : 'bg-transparent'
                 }`}
               />
+              <span
+                className={`text-[9px] leading-none ${
+                  d.isTarget ? 'font-semibold text-ink-dim' : 'text-ink-faint/70'
+                }`}
+              >
+                {initial(d.date)}
+              </span>
             </button>
           )
         })}
       </div>
-      <p className="mt-1.5 text-center text-[10px] tracking-[0.14em] uppercase text-ink-faint">
+      <p className="mt-2 text-center text-[10px] tracking-[0.14em] uppercase text-ink-faint">
         Last {RAIL_DAYS} days — tap one
       </p>
     </div>
@@ -236,11 +261,13 @@ function DayRail({
 
 function Stat({ label, value, unit }: { label: string; value: number; unit: string }) {
   return (
-    <div className="surface px-3 py-2.5 text-center">
-      <p className="text-[10px] tracking-[0.14em] uppercase text-ink-faint">{label}</p>
-      <p className="mt-1">
-        <span className="tnum text-lg font-semibold">{value}</span>
-        <span className="ml-1 text-[11px] text-ink-dim">{unit}</span>
+    <div className="surface px-2.5 py-3 text-center">
+      <p className="leading-none">
+        <span className="tnum text-2xl font-semibold">{value}</span>
+        <span className="ml-0.5 text-[11px] text-ink-dim">{unit}</span>
+      </p>
+      <p className="mt-1.5 text-[10px] leading-tight tracking-[0.1em] uppercase text-ink-faint">
+        {label}
       </p>
     </div>
   )
@@ -288,7 +315,7 @@ function DaySheet({
         className="animate-rise relative mx-auto max-h-[80dvh] w-full max-w-md overflow-y-auto px-5 pb-5 safe-b"
       >
         <DayDetail dateKey={dateKey} log={log} />
-        <button type="button" onClick={onClose} className="btn-secondary mt-3 w-full">
+        <button type="button" onClick={onClose} className="btn-secondary pressable mt-3 w-full">
           Close
         </button>
         <p className="mt-3 text-center text-[11px] leading-relaxed text-ink-faint">
