@@ -153,6 +153,49 @@
       var(--color-base-850) 58%,
       color-mix(in srgb, var(--color-base-900) 55%, var(--color-base-850)) 100%
     );
+    /* One soft, wide, very dark shadow. On a near-black ground a tight shadow
+       reads as a border and a light one reads as fog. */
+    box-shadow: 0 12px 32px -16px rgb(0 0 0 / 0.9);
+  }
+
+  /* Anything tappable should acknowledge the tap. 1.5% is felt, not seen. */
+  .pressable {
+    transition:
+      transform 140ms cubic-bezier(0.22, 1, 0.36, 1),
+      background-color 140ms ease;
+  }
+
+  .pressable:active {
+    transform: scale(0.985);
+  }
+
+  /* Leading icon for a list row. Carries the row's status colour, so the state
+     is legible from the icon alone before any label is read. */
+  .icon-chip {
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border;
+  }
+
+  .icon-need {
+    border-color: color-mix(in srgb, var(--color-ember) 40%, transparent);
+    background-color: color-mix(in srgb, var(--color-ember) 12%, transparent);
+    color: var(--color-ember-lift);
+  }
+
+  .icon-done {
+    border-color: color-mix(in srgb, var(--color-signal) 50%, transparent);
+    background-color: color-mix(in srgb, var(--color-signal-dim) 50%, transparent);
+    color: #8fc0a1;
+  }
+
+  .icon-wait {
+    @apply border-base-600 text-ink-faint;
+    background-color: color-mix(in srgb, var(--color-base-800) 70%, transparent);
+  }
+
+  .icon-miss {
+    border-color: color-mix(in srgb, var(--color-miss) 50%, transparent);
+    background-color: color-mix(in srgb, var(--color-miss-dim) 55%, transparent);
+    color: #c78272;
   }
 
   /* The catch-light itself. Decorative, so it never intercepts a tap. */
@@ -179,6 +222,9 @@
       var(--color-base-850) 62%,
       color-mix(in srgb, var(--color-base-900) 55%, var(--color-base-850)) 100%
     );
+    box-shadow:
+      0 12px 32px -16px rgb(0 0 0 / 0.9),
+      0 0 40px -18px color-mix(in srgb, var(--color-ember) 70%, transparent);
   }
 
   .surface-live::before {

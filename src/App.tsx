@@ -46,6 +46,7 @@ function Splash() {
 function Shell({ settings }: { settings: Settings }) {
   const [tab, setTab] = useState<Tab>('today')
   const [checkInOpen, setCheckInOpen] = useState(false)
+  const [windDownOpen, setWindDownOpen] = useState(false)
   const now = useNow(30_000)
   const today = todayKey(now)
 
@@ -113,7 +114,13 @@ function Shell({ settings }: { settings: Settings }) {
   return (
     <div className="flex min-h-dvh flex-col">
       <main className="mx-auto w-full max-w-md flex-1 safe-t">
-        {tab === 'today' && <Home settings={settings} onOpenCheckIn={() => setCheckInOpen(true)} />}
+        {tab === 'today' && (
+          <Home
+            settings={settings}
+            onOpenCheckIn={() => setCheckInOpen(true)}
+            onOpenWindDown={() => setWindDownOpen(true)}
+          />
+        )}
         {tab === 'history' && <History settings={settings} />}
         {tab === 'stats' && <Stats settings={settings} />}
         {tab === 'settings' && <SettingsScreen settings={settings} />}
@@ -128,8 +135,20 @@ function Shell({ settings }: { settings: Settings }) {
       )}
 
       {checkInOpen && <CheckIn settings={settings} onClose={() => setCheckInOpen(false)} />}
-      {/* Dismissal is driven by the plan appearing in the live query, not by a callback. */}
-      {nightDue && <NightCard settings={settings} onDone={() => undefined} />}
+
+      {/*
+        Two ways in, one screen. When it is due it is a lock and has no exit —
+        that requirement is load-bearing. When it is opened by hand, from the
+        Today panel, it is a catch-up and closes freely: an evening that got
+        skipped should still be recoverable rather than silently lost.
+      */}
+      {(nightDue || windDownOpen) && (
+        <NightCard
+          settings={settings}
+          onDone={() => setWindDownOpen(false)}
+          onDismiss={nightDue ? undefined : () => setWindDownOpen(false)}
+        />
+      )}
     </div>
   )
 }
