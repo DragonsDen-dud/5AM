@@ -1,9 +1,13 @@
+import { useLiveQuery } from 'dexie-react-hooks'
+import { db, getSettings } from '../lib/db'
 import { formatDateKey } from '../lib/dates'
+import { formatHours, impliedLightsOut } from '../lib/sleepStats'
 import { useBlobUrl } from '../hooks/useBlobUrl'
 import type { RunLog } from '../lib/types'
 
 const FELT_LABELS = ['Grim', 'Flat', 'Fine', 'Good', 'Flying']
 const EFFORT_LABELS = ['Easy', 'Steady', 'Solid', 'Hard', 'Everything']
+const QUALITY_LABELS = ['Broken', 'Poor', 'Okay', 'Good', 'Solid']
 
 /**
  * One day's record, read-only. Shared by the History calendar and the streak
@@ -17,6 +21,17 @@ export function DayDetail({ dateKey, log }: { dateKey: string; log?: RunLog }) {
   const photoUrl = useBlobUrl(log?.photoBlob)
   const pace = paceLabel(log)
 
+  /*
+   * The night is queried here rather than passed in, so every entry point —
+   * the History calendar, the streak rail, either lens — shows the same whole
+   * day without its caller having to know that a day has two halves.
+   */
+  const sleep = useLiveQuery(
+    async () => (await db.sleepEntries.where('date').equals(dateKey).first()) ?? null,
+    [dateKey],
+  )
+  const settings = useLiveQuery(async () => (await getSettings()) ?? null, [])
+
   return (
     <section className="surface flex flex-col gap-3 p-5">
       <div className="flex items-baseline justify-between">
@@ -24,10 +39,10 @@ export function DayDetail({ dateKey, log }: { dateKey: string; log?: RunLog }) {
         <span
           className={`text-xs font-semibold tracking-wide ${
             log?.status === 'completed'
-              ? 'text-signal'
+              ? 'text-signal-lift'
               : log?.status === 'rest'
                 ? 'text-ink-dim'
-                : 'text-miss'
+                : 'text-miss-lift'
           }`}
         >
           {log?.status === 'completed' ? 'RAN' : log?.status === 'rest' ? 'REST' : 'MISSED'}
@@ -81,7 +96,7 @@ export function DayDetail({ dateKey, log }: { dateKey: string; log?: RunLog }) {
 
           {log.niggle && (
             <p className="rounded-lg border border-miss/40 bg-miss-dim/20 px-3.5 py-2.5 text-sm leading-relaxed text-ink-dim">
-              <span className="font-semibold text-miss">Niggle logged.</span>{' '}
+              <span className="font-semibold text-miss-lift">Niggle logged.</span>{' '}
               {log.niggleNote ?? 'No detail recorded.'}
             </p>
           )}
@@ -100,6 +115,25 @@ export function DayDetail({ dateKey, log }: { dateKey: string; log?: RunLog }) {
         <p className="text-sm leading-relaxed text-ink-dim">
           No check-in inside the window. Recorded and left alone.
         </p>
+      )}
+
+      {/* Every day has a night in front of it, whatever the run did. */}
+      {sleep && (
+        <div className="border-t border-base-700/70 pt-3">
+          <dl className="tnum grid grid-cols-3 gap-3 text-sm">
+            <Stat label="Slept" value={formatHours(sleep.hoursSlept)} />
+            <Stat
+              label="Quality"
+              value={`${sleep.quality}/5`}
+              caption={QUALITY_LABELS[sleep.quality - 1]}
+            />
+            <Stat
+              label="Lights out"
+              value={impliedLightsOut(settings?.targetTime ?? '05:00', sleep.hoursSlept)}
+              caption="implied"
+            />
+          </dl>
+        </div>
       )}
     </section>
   )

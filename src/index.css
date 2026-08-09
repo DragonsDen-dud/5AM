@@ -27,10 +27,18 @@
   /* Cold, disciplined green — not a celebratory green. */
   --color-signal: #4e7a5e;
   --color-signal-dim: #2b4436;
+  /*
+   * The readable ends of the two status colours. `signal` and `miss` are dark
+   * enough that 11–12px text on or in them lands under WCAG AA (3.9 and 2.3
+   * respectively); these are the same hues lifted until they clear it, and are
+   * used wherever a status has to carry small text.
+   */
+  --color-signal-lift: #6fa87f;
 
   /* Sober disappointment, not alarm-red. */
   --color-miss: #8c3b2e;
   --color-miss-dim: #4a2019;
+  --color-miss-lift: #c78272;
 
   /* Tabular/scoreboard face for numbers; humanist sans for prose. */
   --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, 'JetBrains Mono', 'Roboto Mono',

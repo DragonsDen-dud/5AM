@@ -38,6 +38,7 @@ Phase 1 proved the loop works structurally. Phase 2 makes the app know things ab
 - **Commitment layer** — temptation bundling and an honor-system stake, off by default and not offered until a 21-day streak. Once unlocked it stays unlocked.
 - **Fresh start** — after 3+ consecutive missed days, a distinct re-engagement card at the next temporal landmark. Separate copy and a separate trigger from the daily recovery message.
 - **Stats v2** — completion trend, readiness alongside completion, ACWR trend, and message-category performance. One chart visible at a time.
+- **Sleep history** — the Sleep lens on History, with a lights-out recommendation derived from your own best nights. See **Reading your sleep back** below.
 
 ### The generative pipeline, and your API key
 
@@ -111,6 +112,20 @@ All of these are unindexed fields on `RunLog`, so they need no schema version an
 Tap any cell in the 14-day rail on Today and that day's record opens in a sheet: photo, distance, duration, effort, pace, felt, heart rate, route, note, niggle. The same view is what the History calendar shows, from one shared component — a second copy would drift the moment either grew a field.
 
 The sheet is read-only, and says so. History is immutable; the only place a day can be edited is Today, and only for the day it belongs to.
+
+## Reading your sleep back
+
+Sleep did not get a fifth tab. It shares a date axis and a calendar with running, and a day is more useful read whole than split across two screens — the night in front of a run is part of that run's story. **History carries two lenses**, Runs and Sleep, over one grid and one detail sheet.
+
+In the sleep lens each cell carries the hours themselves, shaded by how that night sat against **your own median** rather than a generic eight hours. The same 6h night is normal for a 6h sleeper and short for an 8h one, and the app already knows which you are. Tapping a cell opens the same day record as everywhere else, now including the night: hours, quality, and the lights-out it implies.
+
+### The recommendation
+
+The app never asks for a bedtime — only hours and quality. But the wake time is fixed by your target, so every logged night *implies* a lights-out, and that is what turns a column of numbers into a schedule. It is a derivation, not a measurement, and the screen says so.
+
+The target hours come from **your own best-rated nights** (quality 4–5), falling back to your median when there aren't three of them yet. A target you have already hit is one you can hit again; a number off a poster is a number off a poster. Below five logged nights it declines to advise at all and says how many it has.
+
+Under that sit the last 28 nights: typical hours, implied lights-out, coverage, shortest, longest, and **swing** — how much your nights vary either side of typical. Swing leads the second row deliberately. Regularity, not duration, is the finding the whole app is built on, and the copy says why.
 
 ## The alarm step
 
@@ -189,6 +204,7 @@ Everything is stored on-device. There is no account, no server, and nothing is u
 │   ├── lib/                  db, streak, window, content, reconcile, notifications
 │   │                         readiness, load, sleep, bandit, generate, trends
 │   │                         alarmTime (suggestion, DST/zone maths, ramp)
+│   │                         sleepStats (history, swing, lights-out advice)
 │   │   └── verification/     photo.ts, honor.ts
 │   └── screens/              Onboarding, Home, CheckIn, History, Stats, Settings
 ├── sw.ts                     service worker: precache, push, notificationclick
